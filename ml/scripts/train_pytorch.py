@@ -13,6 +13,22 @@ from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, models, transforms
 
 
+class LowResolutionDegradation:
+    """Simulate small, compressed, noisy phone images during training."""
+
+    def __init__(self, min_size: int = 48, probability: float = 0.7):
+        self.min_size = min_size
+        self.probability = probability
+
+    def __call__(self, image):
+        if random.random() > self.probability:
+            return image
+        width, height = image.size
+        size = random.randint(self.min_size, max(self.min_size, min(width, height) // 2))
+        image = image.resize((size, size))
+        return image.resize((width, height))
+
+
 def split_indices(targets: list[int], fraction: float, seed: int):
     if not 0.0 < fraction < 1.0:
         raise ValueError("validation_fraction must be between 0 and 1")
@@ -63,6 +79,11 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--validation-fraction", type=float, default=0.2)
     parser.add_argument("--image-size", type=int, default=224)
+    parser.add_argument(
+        "--low-resolution",
+        action="store_true",
+        help="use 160x160 input and low-resolution degradation augmentation",
+    )
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     if args.epochs < 1 or args.batch_size < 1:
@@ -73,6 +94,9 @@ def main() -> None:
         raise SystemExit("CUDA is unavailable; refusing to run this GPU trainer on CPU")
     device = torch.device("cuda")
     print(f"Using {torch.cuda.get_device_name(device)}")
+    if args.low_resolution:
+        args.image_size = 160
+        print("Low-resolution mode: 160x160 input with degradation augmentation")
 
     normalize = transforms.Normalize(
         mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
@@ -82,6 +106,10 @@ def main() -> None:
             transforms.Resize((args.image_size, args.image_size)),
             transforms.RandomHorizontalFlip(),
             transforms.RandomRotation(10),
+            transforms.RandomApply(
+                [transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0))], p=0.25
+            ),
+            LowResolutionDegradation(),
             transforms.ToTensor(),
             normalize,
         ]
@@ -151,6 +179,7 @@ def main() -> None:
                     "classes": base.classes,
                     "image_size": args.image_size,
                     "architecture": "MobileNetV3-Small",
+                    "low_resolution": args.low_resolution,
                 },
                 args.output_dir / "best.pt",
             )
@@ -161,6 +190,7 @@ def main() -> None:
         json.dumps(
             {
                 "architecture": "MobileNetV3-Small",
+                "low_resolution": args.low_resolution,
                 "device": torch.cuda.get_device_name(device),
                 "dataset": str(args.dataset),
                 "test_dataset": str(args.test_dataset) if args.test_dataset else None,

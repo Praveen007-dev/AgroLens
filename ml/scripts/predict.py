@@ -30,7 +30,9 @@ def load_model(checkpoint_path: Path, device: torch.device):
     model.load_state_dict(checkpoint["model_state"])
     model.to(device)
     model.eval()
-    return model, labels, int(checkpoint.get("image_size", 224))
+    return model, labels, int(checkpoint.get("image_size", 224)), checkpoint.get(
+        "architecture", "unknown"
+    )
 
 
 def image_paths(source: Path) -> list[Path]:
@@ -46,7 +48,17 @@ def image_paths(source: Path) -> list[Path]:
     raise FileNotFoundError(f"image path does not exist: {source}")
 
 
-def predict_image(model, labels, transform, path: Path, device, top_k: int, threshold: float):
+def predict_image(
+    model,
+    labels,
+    transform,
+    path: Path,
+    device,
+    top_k: int,
+    threshold: float,
+    architecture: str,
+    image_size: int,
+):
     """Predict one image and return the shared inference contract shape."""
     try:
         with Image.open(path) as image:
@@ -69,7 +81,7 @@ def predict_image(model, labels, transform, path: Path, device, top_k: int, thre
             for value, index in zip(values.tolist(), indices.tolist())
         ],
         "is_low_confidence": confidence < threshold,
-        "model_version": "plantleaf-mobilenetv3-epoch5",
+        "model_version": f"{architecture}-lowres-{image_size}px",
         "inference_timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "image_path": str(path),
     }
@@ -92,7 +104,7 @@ def main() -> None:
     if not paths:
         raise SystemExit("no supported images found (.jpg, .jpeg, .png, .bmp, .gif, .webp)")
     device = torch.device("cpu" if args.cpu or not torch.cuda.is_available() else "cuda")
-    model, labels, image_size = load_model(args.model, device)
+    model, labels, image_size, architecture = load_model(args.model, device)
     transform = transforms.Compose(
         [
             transforms.Resize((image_size, image_size)),
@@ -103,7 +115,17 @@ def main() -> None:
         ]
     )
     results = [
-        predict_image(model, labels, transform, path, device, args.top_k, args.threshold)
+        predict_image(
+            model,
+            labels,
+            transform,
+            path,
+            device,
+            args.top_k,
+            args.threshold,
+            architecture,
+            image_size,
+        )
         for path in paths
     ]
     if args.json:

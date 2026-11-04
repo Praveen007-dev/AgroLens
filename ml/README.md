@@ -1,10 +1,10 @@
 # AgroLens ML inference
 
-This directory contains the Python inference and training interface for AgroLens.
-The repository does not contain the datasets or trained weights. Until training
-is run, the default implementation uses a clearly marked deterministic mock
-model. It does **not** represent trained model performance or an expert
-diagnosis.
+This directory contains the Python inference interface for AgroLens. No trained
+model or dataset is present in this repository, so the default implementation
+uses a clearly marked deterministic mock model. It is suitable for exercising
+the mobile integration and contract handling, but it does **not** represent
+trained model performance or an expert diagnosis.
 
 ## Setup
 
@@ -14,76 +14,6 @@ python -m venv .venv
 python -m pip install -r ml\requirements.txt
 python -m pytest ml\tests
 ```
-
-## Train with PlantDoc and PlantVillage
-
-Do not commit either dataset to this repository. Clone or download them outside
-the repository, then install the training dependencies:
-
-```powershell
-python -m pip install -r ml\requirements-train.txt
-python ml\scripts\train.py `
-  --dataset C:\datasets\PlantDoc-Dataset `
-  --dataset C:\datasets\PlantVillage-Dataset\raw\color `
-  --output-dir ml\models\agrolens `
-  --epochs 12
-```
-
-On native Windows, use the GPU-native PyTorch trainer instead. TensorFlow
-2.11+ does not provide native-Windows CUDA support:
-
-```powershell
-python ml\scripts\train_pytorch.py `
-  --dataset C:\datasets\PlantDoc-Dataset\train `
-  --test-dataset C:\datasets\PlantDoc-Dataset\test `
-  --output-dir ml\models\plantdoc-mobilenetv3 `
-  --epochs 12 `
-  --batch-size 16
-```
-
-Install its dependencies with `ml\requirements-train-pytorch.txt`. This
-produces a GPU-trained `best.pt` checkpoint and measured metrics. It does not
-produce TFLite directly; convert the selected checkpoint through a Linux/WSL
-TensorFlow or ONNX conversion workflow after evaluation.
-
-## Test an image with the trained model
-
-After training, use the generated checkpoint to test one image:
-
-```powershell
-python ml\scripts\predict.py `
-  "C:\path\to\leaf.jpg" `
-  --model ml\models\plantleaf-withoutaug-mobilenetv3\best.pt
-```
-
-Or test every supported image in a folder:
-
-```powershell
-python ml\scripts\predict.py "C:\path\to\photos" --json
-```
-
-The program uses CUDA automatically when available, applies the same
-224 x 224 RGB ImageNet normalization used during training, and prints the
-predicted label, confidence, low-confidence flag, and top-five predictions.
-Use `--cpu` to force CPU inference. A low-confidence result is only a model
-signal and must not be presented as an expert-confirmed diagnosis.
-
-The trainer recursively reads image files and uses each image's immediate parent
-folder as its class label. This supports PlantDoc train/test class folders and
-PlantVillage's `raw/color/<class>` layout. It creates a stratified validation
-split, trains an ImageNet-initialized MobileNetV2 head at 224 x 224, and writes:
-
-* `best.keras` — best validation checkpoint
-* `saved_model/` — TensorFlow SavedModel
-* `agrolens.tflite` — float32 mobile model
-* `labels.json` — output-index mapping
-* `training_summary.json` — counts and measured final metrics
-
-The first run trains only the classification head. This is intentional for a
-mobile-first baseline; fine-tuning selected MobileNetV2 layers can be added
-after the baseline is evaluated on a held-out, field-like test set. Do not
-report accuracy until this command has completed and the resulting metrics have
-been reviewed.
 
 ## Interface
 
