@@ -5,8 +5,12 @@ import {
   PieChart, Pie, Cell, CartesianGrid, LineChart, Line, Legend
 } from 'recharts';
 
-import { COMMODITY_PRICES, MANDI_MARKETS } from './services/mandiData';
-import { REGIONAL_WEATHER_DATA, AGRI_NEWS_SCHEMES } from './services/weatherNewsData';
+import { MANDI_MARKETS, getMarketPriceData } from './services/mandiData';
+import {
+  INDIA_ALL_STATES_DISTRICTS,
+  getDistrictWeatherData,
+  AGRI_NEWS_SCHEMES
+} from './services/weatherNewsData';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
 
@@ -88,7 +92,7 @@ const CROP_BENCHMARK_METRICS = {
   ]
 };
 
-// Balanced Agronomic Guide
+// Symmetrical 5-point Agronomic Guide
 const AGRONOMIC_GUIDE = {
   "Early Blight": {
     crop: "Tomato / Potato",
@@ -343,11 +347,30 @@ export default function App() {
   // Dedicated Crop Charts State
   const [selectedChartCrop, setSelectedChartCrop] = useState('Tomato');
 
-  // Mandi & Market Analytics State
+  // Mandi & Market Analytics State (Interactive Center Selection)
   const [selectedMandiCrop, setSelectedMandiCrop] = useState('Tomato');
+  const [selectedMandiMarket, setSelectedMandiMarket] = useState(MANDI_MARKETS[0]);
 
-  // Regional Weather State
+  // Dynamic Mandi Pricing calculated when center or crop changes
+  const currentMandiData = useMemo(() => {
+    return getMarketPriceData(selectedMandiCrop, selectedMandiMarket);
+  }, [selectedMandiCrop, selectedMandiMarket]);
+
+  // Regional Weather State (Cascading State & District)
+  const [selectedState, setSelectedState] = useState('Karnataka');
   const [selectedDistrict, setSelectedDistrict] = useState('Uttara Kannada');
+
+  const handleStateChange = (stateName) => {
+    setSelectedState(stateName);
+    const districts = INDIA_ALL_STATES_DISTRICTS[stateName] || [];
+    if (districts.length > 0) {
+      setSelectedDistrict(districts[0]);
+    }
+  };
+
+  const currentWeather = useMemo(() => {
+    return getDistrictWeatherData(selectedDistrict, selectedState);
+  }, [selectedDistrict, selectedState]);
 
   // Filter state
   const [filterCrop, setFilterCrop] = useState('');
@@ -472,11 +495,58 @@ export default function App() {
         <span className="banner-badge">DEMONSTRATION MOCK DATA ACTIVE</span>
       </div>
 
+      {/* HEADER WITH ICAR-IIHR LOGO & INSTITUTIONAL BADGE */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div>
-          <h1 style={{ fontSize: 28 }}>AgroLens Research Dashboard</h1>
-          <p style={{ color: '#94a3b8', fontSize: 14 }}>Field Scan Telemetry & Institutional Baseline Analytics</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {/* ICAR-IIHR Compact Emblem Badge */}
+          <div style={{
+            background: '#ffffff',
+            padding: 3,
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.35)',
+            border: '2px solid #38bdf8',
+            flexShrink: 0
+          }}>
+            <img
+              src="https://upload.wikimedia.org/wikipedia/en/thumb/d/d6/Logo_of_Indian_Institute_of_Horticultural_Research.jpg/250px-Logo_of_Indian_Institute_of_Horticultural_Research.jpg"
+              alt="ICAR-IIHR Logo"
+              style={{
+                width: 44,
+                height: 44,
+                objectFit: 'contain',
+                borderRadius: '50%'
+              }}
+              onError={(e) => {
+                // Fallback to ICAR Council Wheat Sheaf Emblem
+                e.target.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Logo_of_the_Indian_Council_of_Agricultural_Research.svg/250px-Logo_of_the_Indian_Council_of_Agricultural_Research.svg.png";
+              }}
+            />
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h1 style={{ fontSize: 28, margin: 0 }}>AgroLens Research Dashboard</h1>
+              <span style={{
+                background: '#1e3a5f',
+                color: '#38bdf8',
+                fontSize: 11,
+                fontWeight: 600,
+                padding: '2px 8px',
+                borderRadius: 4,
+                border: '1px solid #38bdf8'
+              }}>
+                ICAR-IIHR Aligned
+              </span>
+            </div>
+            <p style={{ color: '#94a3b8', fontSize: 14, margin: '4px 0 0 0' }}>
+              Field Scan Telemetry & Institutional Baseline Analytics
+            </p>
+          </div>
         </div>
+
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="export-btn" onClick={() => alert("Backend CSV export will connect to /api/export/scans?format=csv")}>Export CSV</button>
           <button className="export-btn" onClick={() => alert("Backend JSON export will connect to /api/export/scans?format=json")}>Export JSON</button>
@@ -561,7 +631,7 @@ export default function App() {
         </button>
       </div>
 
-      {/* TAB 1: DISEASE & SCAN TELEMETRY (PRESERVES EXISTING WORKING FEATURES 100%) */}
+      {/* TAB 1: DISEASE & SCAN TELEMETRY */}
       {activeTab === 'telemetry' && (
         <>
           {/* Leaf Scan & Farmer Intake */}
@@ -1113,63 +1183,65 @@ export default function App() {
                 onChange={(e) => setSelectedMandiCrop(e.target.value)}
                 style={{ minWidth: 140, cursor: 'pointer', borderColor: '#38bdf8' }}
               >
-                {Object.keys(COMMODITY_PRICES).map(crop => (
-                  <option key={crop} value={crop}>{crop}</option>
-                ))}
+                <option value="Tomato">Tomato</option>
+                <option value="Potato">Potato</option>
+                <option value="Paddy">Paddy</option>
+                <option value="Cotton">Cotton</option>
+                <option value="Corn">Corn</option>
               </select>
             </div>
           </div>
 
-          {COMMODITY_PRICES[selectedMandiCrop] && (
+          {currentMandiData && (
             <>
               {/* Price Metric Cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 20 }}>
                 <div style={{ background: '#0f172a', padding: 14, borderRadius: 6, border: '1px solid #334155' }}>
-                  <div style={{ fontSize: 12, color: '#94a3b8' }}>Market & Source</div>
+                  <div style={{ fontSize: 12, color: '#94a3b8' }}>Selected Center & Location</div>
                   <div style={{ fontSize: 16, fontWeight: 600, color: '#f8fafc', marginTop: 4 }}>
-                    {COMMODITY_PRICES[selectedMandiCrop].market}
+                    {currentMandiData.market}
                   </div>
                   <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-                    Source: {COMMODITY_PRICES[selectedMandiCrop].source}
+                    Source: {currentMandiData.source}
                   </div>
                 </div>
 
                 <div style={{ background: '#0f172a', padding: 14, borderRadius: 6, border: '1px solid #334155' }}>
                   <div style={{ fontSize: 12, color: '#94a3b8' }}>Today's Modal Price</div>
                   <div style={{ fontSize: 22, fontWeight: 700, color: '#38bdf8', marginTop: 4 }}>
-                    ₹{COMMODITY_PRICES[selectedMandiCrop].modalPrice}
+                    ₹{currentMandiData.modalPrice}
                   </div>
                   <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                    Unit: {COMMODITY_PRICES[selectedMandiCrop].unit}
+                    Unit: {currentMandiData.unit}
                   </div>
                 </div>
 
                 <div style={{ background: '#0f172a', padding: 14, borderRadius: 6, border: '1px solid #334155' }}>
                   <div style={{ fontSize: 12, color: '#94a3b8' }}>Price Range (Min - Max)</div>
                   <div style={{ fontSize: 20, fontWeight: 600, color: '#10b981', marginTop: 4 }}>
-                    ₹{COMMODITY_PRICES[selectedMandiCrop].minPrice} – ₹{COMMODITY_PRICES[selectedMandiCrop].maxPrice}
+                    ₹{currentMandiData.minPrice} – ₹{currentMandiData.maxPrice}
                   </div>
                   <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                    Updated: {new Date(COMMODITY_PRICES[selectedMandiCrop].lastUpdated).toLocaleDateString()}
+                    Updated: {new Date(currentMandiData.lastUpdated).toLocaleDateString()}
                   </div>
                 </div>
               </div>
 
               {/* Price Trend Chart (Actual vs ML Forecast) */}
-              <div style={{ background: '#0f172a', padding: 16, borderRadius: 6, border: '1px solid #334155', marginBottom: 16 }}>
+              <div style={{ background: '#0f172a', padding: 16, borderRadius: 6, border: '1px solid #334155', marginBottom: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: '#f8fafc' }}>
-                    Historical Price Trajectory & 5-Day ML Price Projection ({COMMODITY_PRICES[selectedMandiCrop].unit})
+                    {selectedMandiMarket.name} — Price Trajectory & 5-Day ML Projection ({currentMandiData.unit})
                   </span>
                   <div style={{ display: 'flex', gap: 14, fontSize: 12 }}>
-                    <span style={{ color: '#38bdf8' }}>● Solid: Actual Recorded APMC Prices</span>
+                    <span style={{ color: '#38bdf8' }}>● Solid: Recorded APMC Prices</span>
                     <span style={{ color: '#f59e0b' }}>--- Dashed: ML Predictive Forecast</span>
                   </div>
                 </div>
 
                 <div style={{ width: '100%', height: 280 }}>
                   <ResponsiveContainer>
-                    <LineChart data={COMMODITY_PRICES[selectedMandiCrop].historical}>
+                    <LineChart data={currentMandiData.historical}>
                       <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
                       <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} />
                       <YAxis stroke="#94a3b8" fontSize={11} domain={['dataMin - 150', 'dataMax + 150']} />
@@ -1183,16 +1255,65 @@ export default function App() {
                 </div>
               </div>
 
-              {/* APMC Regional Directory */}
-              <div style={{ background: '#0f172a', padding: 14, borderRadius: 6, border: '1px solid #334155' }}>
-                <h4 style={{ margin: '0 0 10px 0', fontSize: 14, color: '#f8fafc' }}>Active Karnataka APMC Monitoring Centers</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, fontSize: 12 }}>
-                  {MANDI_MARKETS.map(market => (
-                    <div key={market.id} style={{ background: '#1e293b', padding: '8px 12px', borderRadius: 4, border: '1px solid #334155' }}>
-                      <strong style={{ color: '#38bdf8' }}>{market.name}</strong>
-                      <div style={{ color: '#94a3b8', marginTop: 2 }}>{market.district}, {market.state}</div>
-                    </div>
-                  ))}
+              {/* Active India APMC Monitoring Centers */}
+              <div style={{ marginTop: 24 }}>
+                <h3 style={{
+                  textAlign: 'center',
+                  fontSize: 18,
+                  fontWeight: 700,
+                  color: '#ffffff',
+                  marginBottom: 6
+                }}>
+                  Active India APMC Monitoring Centers
+                </h3>
+                <p style={{ textAlign: 'center', fontSize: 12, color: '#94a3b8', margin: '0 0 16px 0' }}>
+                  (Click any center to view its specific price trajectory and 5-day ML forecast above)
+                </p>
+
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  gap: 14
+                }}>
+                  {MANDI_MARKETS.map(market => {
+                    const isSelected = selectedMandiMarket.id === market.id;
+                    return (
+                      <div
+                        key={market.id}
+                        onClick={() => setSelectedMandiMarket(market)}
+                        style={{
+                          background: isSelected ? '#1e3a5f' : '#152238',
+                          padding: '18px 16px',
+                          borderRadius: 8,
+                          border: isSelected ? '2px solid #38bdf8' : '1px solid #1e3a5f',
+                          textAlign: 'center',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          transform: isSelected ? 'translateY(-2px)' : 'none',
+                          boxShadow: isSelected ? '0 4px 12px rgba(56, 189, 248, 0.2)' : 'none'
+                        }}
+                      >
+                        <div style={{
+                          fontWeight: 700,
+                          color: isSelected ? '#ffffff' : '#38bdf8',
+                          fontSize: 16,
+                          marginBottom: 6
+                        }}>
+                          {market.name} {isSelected && '✓'}
+                        </div>
+                        <div style={{
+                          color: isSelected ? '#93c5fd' : '#94a3b8',
+                          fontSize: 13
+                        }}>
+                          {market.district}, {market.state}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </>
@@ -1200,63 +1321,82 @@ export default function App() {
         </div>
       )}
 
-      {/* TAB 3: AGROMETEOROLOGY & REGIONAL WEATHER */}
+      {/* TAB 3: AGROMETEOROLOGY & REGIONAL WEATHER (ALL STATES & ALL DISTRICTS) */}
       {activeTab === 'weather' && (
         <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
             <div>
               <h3 style={{ margin: 0, fontSize: 18, color: '#f8fafc' }}>🌦️ Agrometeorological & Micro-Climate Intelligence</h3>
               <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#94a3b8' }}>
-                District-level climate surveillance linked directly to fungal and bacterial pathogen risk indices.
+                District-level climate surveillance linked directly to fungal and bacterial pathogen risk indices across India.
               </p>
             </div>
 
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <label style={{ fontSize: 13, color: '#94a3b8' }}>Select District:</label>
-              <select
-                className="filter-input"
-                value={selectedDistrict}
-                onChange={(e) => setSelectedDistrict(e.target.value)}
-                style={{ minWidth: 160, cursor: 'pointer', borderColor: '#38bdf8' }}
-              >
-                {Object.keys(REGIONAL_WEATHER_DATA).map(district => (
-                  <option key={district} value={district}>{district}</option>
-                ))}
-              </select>
+            {/* Cascading State & District Selectors */}
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <label style={{ fontSize: 13, color: '#94a3b8' }}>Select State:</label>
+                <select
+                  className="filter-input"
+                  value={selectedState}
+                  onChange={(e) => handleStateChange(e.target.value)}
+                  style={{ minWidth: 160, cursor: 'pointer', borderColor: '#38bdf8' }}
+                >
+                  {Object.keys(INDIA_ALL_STATES_DISTRICTS).map(st => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <label style={{ fontSize: 13, color: '#94a3b8' }}>Select District:</label>
+                <select
+                  className="filter-input"
+                  value={selectedDistrict}
+                  onChange={(e) => setSelectedDistrict(e.target.value)}
+                  style={{ minWidth: 170, cursor: 'pointer', borderColor: '#38bdf8' }}
+                >
+                  {(INDIA_ALL_STATES_DISTRICTS[selectedState] || []).map(dist => (
+                    <option key={dist} value={dist}>{dist}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
-          {REGIONAL_WEATHER_DATA[selectedDistrict] && (
+          {currentWeather && (
             <>
               {/* Weather Telemetry Cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 20 }}>
                 <div style={{ background: '#0f172a', padding: 14, borderRadius: 6, border: '1px solid #334155' }}>
                   <div style={{ fontSize: 12, color: '#94a3b8' }}>Temperature</div>
                   <div style={{ fontSize: 24, fontWeight: 700, color: '#f8fafc', marginTop: 4 }}>
-                    {REGIONAL_WEATHER_DATA[selectedDistrict].temp}°C
+                    {currentWeather.temp}°C
                   </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Wind: {REGIONAL_WEATHER_DATA[selectedDistrict].windSpeed}</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Wind: {currentWeather.windSpeed}</div>
                 </div>
 
                 <div style={{ background: '#0f172a', padding: 14, borderRadius: 6, border: '1px solid #334155' }}>
                   <div style={{ fontSize: 12, color: '#94a3b8' }}>Relative Humidity</div>
                   <div style={{ fontSize: 24, fontWeight: 700, color: '#38bdf8', marginTop: 4 }}>
-                    {REGIONAL_WEATHER_DATA[selectedDistrict].humidity}%
+                    {currentWeather.humidity}%
                   </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Canopy wetness index: Elevated</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                    Canopy wetness index: {currentWeather.humidity > 70 ? 'Elevated' : 'Normal'}
+                  </div>
                 </div>
 
                 <div style={{ background: '#0f172a', padding: 14, borderRadius: 6, border: '1px solid #334155' }}>
                   <div style={{ fontSize: 12, color: '#94a3b8' }}>Precipitation Outlook</div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: '#cbd5e1', marginTop: 6, lineHeight: 1.4 }}>
-                    {REGIONAL_WEATHER_DATA[selectedDistrict].rainfallForecast}
+                    {currentWeather.rainfallForecast}
                   </div>
                 </div>
 
                 <div style={{ background: '#0f172a', padding: 14, borderRadius: 6, border: '1px solid #334155' }}>
                   <div style={{ fontSize: 12, color: '#94a3b8' }}>Active Micro-Advisories</div>
                   <div style={{ fontSize: 24, fontWeight: 700, color: '#f59e0b', marginTop: 4 }}>
-                    {REGIONAL_WEATHER_DATA[selectedDistrict].advisoriesCount}
+                    {currentWeather.advisoriesCount}
                   </div>
                   <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Current week bulletins</div>
                 </div>
@@ -1269,25 +1409,25 @@ export default function App() {
                 borderRadius: 6,
                 padding: 16
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>
-                    Agrometeorological Risk Summary for {selectedDistrict}
+                    Agrometeorological Risk Summary for {selectedDistrict}, {selectedState}
                   </span>
                   <span className={`badge ${
-                    REGIONAL_WEATHER_DATA[selectedDistrict].riskSummary.level === 'High' ? 'badge-warning' :
-                    REGIONAL_WEATHER_DATA[selectedDistrict].riskSummary.level === 'Medium' ? 'badge-info' : 'badge-success'
+                    currentWeather.riskSummary.level === 'High' ? 'badge-warning' :
+                    currentWeather.riskSummary.level === 'Medium' ? 'badge-info' : 'badge-success'
                   }`}>
-                    {REGIONAL_WEATHER_DATA[selectedDistrict].riskSummary.level} Risk
+                    {currentWeather.riskSummary.level} Risk
                   </span>
                 </div>
 
                 <p style={{ margin: '0 0 10px 0', fontSize: 13, color: '#cbd5e1', lineHeight: 1.6 }}>
-                  {REGIONAL_WEATHER_DATA[selectedDistrict].riskSummary.reason}
+                  {currentWeather.riskSummary.reason}
                 </p>
 
                 <div style={{ fontSize: 12, color: '#94a3b8' }}>
                   <strong>Soil Moisture Status: </strong>
-                  <span>{REGIONAL_WEATHER_DATA[selectedDistrict].soilMoistureStatus}</span>
+                  <span>{currentWeather.soilMoistureStatus}</span>
                 </div>
               </div>
             </>
