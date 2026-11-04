@@ -15,6 +15,17 @@ from torchvision import models, transforms
 IMAGE_EXTENSIONS = {".bmp", ".gif", ".jpeg", ".jpg", ".png", ".webp"}
 DEFAULT_MODEL = Path("ml/models/plantleaf-withoutaug-mobilenetv3/best.pt")
 DEFAULT_THRESHOLD = 0.60
+BACKGROUND_LABELS = {"Background_without_leaves"}
+
+
+def label_details(label: str) -> tuple[str, str]:
+    """Split PlantVillage-style labels into crop and disease text."""
+    if label in BACKGROUND_LABELS:
+        return "unknown", "no_leaf_detected"
+    if "___" in label:
+        crop, disease = label.split("___", 1)
+        return crop.replace("_", " "), disease.replace("_", " ")
+    return "unknown", label.replace("_", " ")
 
 
 def load_model(checkpoint_path: Path, device: torch.device):
@@ -73,16 +84,19 @@ def predict_image(
         probabilities = torch.softmax(model(batch), dim=1)[0]
     values, indices = torch.topk(probabilities, k=min(top_k, len(labels)))
     confidence = float(values[0].item())
+    predicted_label = labels[int(indices[0].item())]
+    crop, _ = label_details(predicted_label)
+    is_background = predicted_label in BACKGROUND_LABELS
     return {
         "prediction_id": str(uuid4()),
-        "crop": "unknown",
-        "disease_label": labels[int(indices[0].item())],
+        "crop": crop,
+        "disease_label": predicted_label,
         "confidence": confidence,
         "top_predictions": [
             {"label": labels[int(index)], "confidence": float(value)}
             for value, index in zip(values.tolist(), indices.tolist())
         ],
-        "is_low_confidence": confidence < threshold,
+        "is_low_confidence": is_background or confidence < threshold,
         "model_version": f"{architecture}-lowres-{image_size}px",
         "inference_timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "image_path": str(path),
@@ -136,7 +150,12 @@ def main() -> None:
     print(f"Device: {torch.cuda.get_device_name(device) if device.type == 'cuda' else 'CPU'}")
     for result in results:
         print(f"\nImage: {result['image_path']}")
-        print(f"Prediction: {result['disease_label']}")
+        if result["disease_label"] in BACKGROUND_LABELS:
+            print("Result: No clear leaf detected; no disease diagnosis made")
+        else:
+            _, disease = label_details(result["disease_label"])
+            print(f"Plant: {result['crop']}")
+            print(f"Disease: {disease}")
         print(f"Confidence: {result['confidence']:.2%}")
         print(f"Low confidence: {result['is_low_confidence']}")
         print("Top predictions:")
