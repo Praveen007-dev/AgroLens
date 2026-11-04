@@ -87,6 +87,46 @@ result = InferenceEngine().infer("path/to/leaf.jpg", crop="tomato")
 The returned dictionary follows `contracts/inference_contract.json` exactly.
 The default mock model is used only when a trained model is not supplied.
 
+## Crop recommendations
+
+`ml.src.crop_recommendation.recommend_crops` is an isolated, transparent
+rule-based prototype. It accepts season, temperature, rainfall, humidity, soil,
+irrigation, location, and crop-duration inputs and returns ranked crops with
+reasons, limitations, required inputs, and a rule version. The rules are not
+expert-reviewed or agronomically validated; the response explicitly sets
+`validated` to `false`.
+
+```python
+from ml.src.crop_recommendation import CropRecommendationInput, recommend_crops
+
+result = recommend_crops(CropRecommendationInput(
+    season="kharif", temperature_c=28, rainfall_mm=180,
+    humidity_percent=75, soil_type="clay", irrigation_available=True,
+))
+```
+
+The response shape is documented in `ml/schemas/crop_recommendation.schema.json`.
+
+## Mandi price forecasting
+
+`ml.src.mandi_forecasting.forecast_mandi_prices` is independent of disease
+inference. It filters a commodity and market, removes invalid prices, sorts
+chronologically, reports missing dates and large price outliers, evaluates a
+chronological naive holdout baseline with MAE/RMSE, and returns a five-day
+recent-trend forecast when at least seven valid records exist. With less data
+it returns `status: "insufficient_data"` and no numerical forecast.
+
+```python
+from ml.src.mandi_forecasting import MandiPriceRecord, forecast_mandi_prices
+
+result = forecast_mandi_prices(records, commodity="Tomato", market="Mandi A")
+```
+
+CSV loaders expect `date`, `commodity`, `market`, `modal_price`, and optional
+`unit` columns. Forecasts are directional, not calibrated prediction
+intervals or market advice. The response shape is documented in
+`ml/schemas/mandi_forecast.schema.json`.
+
 ## TensorFlow Lite conversion
 
 The native Windows PyTorch trainer produces `best.pt`, not TFLite. Convert the

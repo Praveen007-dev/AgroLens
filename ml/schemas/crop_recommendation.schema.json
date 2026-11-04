@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "required": ["recommendations", "required_input_parameters", "model_version", "validated"],
+  "properties": {
+    "recommendations": {"type": "array"},
+    "required_input_parameters": {"type": "array", "items": {"type": "string"}},
+    "model_version": {"type": "string"},
+    "validated": {"type": "boolean"},
+    "limitations": {"type": "array", "items": {"type": "string"}}
+  }
+}
