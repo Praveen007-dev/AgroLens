@@ -76,6 +76,8 @@ def main() -> None:
     parser.add_argument("--test-dataset", type=Path)
     parser.add_argument("--output-dir", type=Path, default=Path("ml/models/plantdoc-mobilenetv3"))
     parser.add_argument("--epochs", type=int, default=12)
+    parser.add_argument("--patience", type=int, default=4)
+    parser.add_argument("--min-delta", type=float, default=0.001)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--validation-fraction", type=float, default=0.2)
     parser.add_argument("--image-size", type=int, default=224)
@@ -91,8 +93,10 @@ def main() -> None:
     )
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
-    if args.epochs < 1 or args.batch_size < 1:
-        raise SystemExit("epochs and batch-size must be positive")
+    if args.epochs < 1 or args.batch_size < 1 or args.patience < 1:
+        raise SystemExit("epochs, batch-size, and patience must be positive")
+    if args.min_delta < 0:
+        raise SystemExit("min-delta must not be negative")
     random.seed(args.seed)
     torch.manual_seed(args.seed)
     if not torch.cuda.is_available():
@@ -152,10 +156,15 @@ def main() -> None:
         architecture_name = "MobileNetV3-Small"
     model.classifier[3] = nn.Linear(model.classifier[3].in_features, len(base.classes))
     model.to(device)
-    loss_function = nn.CrossEntropyLoss()
+    loss_function = nn.CrossEntropyLoss(label_smoothing=0.1)
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="min", factor=0.5, patience=1, min_lr=1e-6
+    )
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    best_accuracy = -1.0
+    best_validation_loss = float("inf")
+    best_epoch = 0
+    epochs_without_improvement = 0
     summary = []
     for epoch in range(args.epochs):
         model.train()
@@ -173,17 +182,21 @@ def main() -> None:
         validation_loss, validation_accuracy = evaluate(
             model, validation_loader, device, loss_function
         )
+        scheduler.step(validation_loss)
         metrics = {
             "epoch": epoch + 1,
             "train_loss": running_loss / count,
             "train_accuracy": correct / count,
             "validation_loss": validation_loss,
             "validation_accuracy": validation_accuracy,
+            "learning_rate": optimizer.param_groups[0]["lr"],
         }
         summary.append(metrics)
         print(json.dumps(metrics))
-        if validation_accuracy > best_accuracy:
-            best_accuracy = validation_accuracy
+        if validation_loss < best_validation_loss - args.min_delta:
+            best_validation_loss = validation_loss
+            best_epoch = epoch + 1
+            epochs_without_improvement = 0
             torch.save(
                 {
                     "model_state": model.state_dict(),
@@ -194,6 +207,14 @@ def main() -> None:
                 },
                 args.output_dir / "best.pt",
             )
+        else:
+            epochs_without_improvement += 1
+            if epochs_without_improvement >= args.patience:
+                print(
+                    f"Early stopping at epoch {epoch + 1}; "
+                    f"best validation loss was epoch {best_epoch}."
+                )
+                break
     (args.output_dir / "labels.json").write_text(
         json.dumps(base.classes, indent=2) + "\n", encoding="utf-8"
     )
@@ -208,6 +229,9 @@ def main() -> None:
                 "image_count": len(base),
                 "train_count": len(train_indices),
                 "validation_count": len(validation_indices),
+                "best_epoch": best_epoch,
+                "best_validation_loss": best_validation_loss,
+                "early_stopping_patience": args.patience,
                 "metrics": summary,
             },
             indent=2,
