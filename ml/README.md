@@ -29,6 +29,23 @@ python ml\scripts\train.py `
   --epochs 12
 ```
 
+On native Windows, use the GPU-native PyTorch trainer instead. TensorFlow
+2.11+ does not provide native-Windows CUDA support:
+
+```powershell
+python ml\scripts\train_pytorch.py `
+  --dataset C:\datasets\PlantDoc-Dataset\train `
+  --test-dataset C:\datasets\PlantDoc-Dataset\test `
+  --output-dir ml\models\plantdoc-mobilenetv3 `
+  --epochs 12 `
+  --batch-size 16
+```
+
+Install its dependencies with `ml\requirements-train-pytorch.txt`. This
+produces a GPU-trained `best.pt` checkpoint and measured metrics. It does not
+produce TFLite directly; convert the selected checkpoint through a Linux/WSL
+TensorFlow or ONNX conversion workflow after evaluation.
+
 The trainer recursively reads image files and uses each image's immediate parent
 folder as its class label. This supports PlantDoc train/test class folders and
 PlantVillage's `raw/color/<class>` layout. It creates a stratified validation
