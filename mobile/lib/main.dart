@@ -3,11 +3,18 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
 import 'config/app_config.dart';
+import 'features/auth_pages.dart';
 import 'l10n/app_localizations.dart';
 import 'models/inference_result.dart';
 import 'models/scan_record.dart';
+import 'features/agriculture_pages.dart';
+import 'services/agriculture_data_service.dart';
+import 'services/auth_service.dart';
+import 'services/http_agriculture_data_service.dart';
 import 'services/inference_service.dart';
+import 'services/local_auth_service.dart';
 import 'services/location_service.dart';
+import 'services/mock_agriculture_data_service.dart';
 import 'services/mock_inference_service.dart';
 import 'services/storage_service.dart';
 import 'services/tflite_inference_service.dart';
@@ -20,9 +27,15 @@ const _supportedLocales = <Locale>[
   Locale('kn'),
 ];
 
+enum _LocationSettingsTarget { app, location }
+
 void main() {
   runApp(const AgroLensApp());
 }
+
+AgricultureDataService _createAgricultureDataService() => AppConfig.useMockApi
+    ? MockAgricultureDataService()
+    : HttpAgricultureDataService();
 
 class AgroLensApp extends StatefulWidget {
   const AgroLensApp({
@@ -30,12 +43,16 @@ class AgroLensApp extends StatefulWidget {
     this.inferenceService,
     this.locationService,
     this.storageService,
+    this.agricultureDataService,
+    this.authService,
     this.initialLocale = const Locale('en'),
   });
 
   final InferenceService? inferenceService;
   final LocationService? locationService;
   final StorageService? storageService;
+  final AgricultureDataService? agricultureDataService;
+  final AuthService? authService;
   final Locale initialLocale;
 
   @override
@@ -44,10 +61,63 @@ class AgroLensApp extends StatefulWidget {
 
 class _AgroLensAppState extends State<AgroLensApp> {
   late Locale _locale = widget.initialLocale;
+  late final AgricultureDataService _agricultureService;
+  late final bool _ownsAgricultureService;
+  late final AuthService _authService;
+  AuthSession? _session;
+  bool _isRestoringSession = true;
+  String? _restoreError;
+
+  @override
+  void initState() {
+    super.initState();
+    _ownsAgricultureService = widget.agricultureDataService == null;
+    _agricultureService =
+        widget.agricultureDataService ?? _createAgricultureDataService();
+    _authService = widget.authService ?? LocalAuthService();
+    _restoreSession();
+  }
+
+  Future<void> _restoreSession() async {
+    try {
+      final session = await _authService.restoreSession();
+      if (mounted) setState(() => _session = session);
+    } catch (error) {
+      if (mounted) setState(() => _restoreError = error.toString());
+    } finally {
+      if (mounted) setState(() => _isRestoringSession = false);
+    }
+  }
+
+  void _onAuthenticated(AuthSession session) {
+    setState(() {
+      _session = session;
+      _restoreError = null;
+    });
+  }
+
+  Future<void> _signOut() async {
+    try {
+      await _authService.signOut();
+      if (mounted) setState(() => _session = null);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not sign out: $error')),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsAgricultureService) _agricultureService.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      key: ValueKey(_session == null ? 'signed-out' : 'signed-in'),
       title: AppConfig.appName,
       locale: _locale,
       supportedLocales: _supportedLocales,
@@ -64,16 +134,30 @@ class _AgroLensAppState extends State<AgroLensApp> {
         ),
         useMaterial3: true,
       ),
-      home: ScanPage(
-        locale: _locale,
-        onLocaleChanged: (locale) => setState(() => _locale = locale),
-        inferenceService: widget.inferenceService ??
-            (AppConfig.useMockInference
-                ? MockInferenceService()
-                : TFLiteInferenceService()),
-        locationService: widget.locationService ?? LocationService(),
-        storageService: widget.storageService,
-      ),
+      home: _isRestoringSession
+          ? const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            )
+          : _session == null
+              ? AuthPage(
+                  key: const Key('agrolens-auth-page'),
+                  authService: _authService,
+                  onAuthenticated: _onAuthenticated,
+                  initialError: _restoreError,
+                )
+              : ScanPage(
+                  locale: _locale,
+                  onLocaleChanged: (locale) => setState(() => _locale = locale),
+                  agricultureDataService: _agricultureService,
+                  inferenceService: widget.inferenceService ??
+                      (AppConfig.useMockInference
+                          ? MockInferenceService()
+                          : TFLiteInferenceService()),
+                  locationService: widget.locationService ?? LocationService(),
+                  storageService: widget.storageService,
+                  session: _session!,
+                  onSignOut: _signOut,
+                ),
     );
   }
 }
@@ -83,15 +167,21 @@ class ScanPage extends StatefulWidget {
     super.key,
     required this.locale,
     required this.onLocaleChanged,
+    this.agricultureDataService,
     required this.inferenceService,
     required this.locationService,
+    required this.session,
+    required this.onSignOut,
     this.storageService,
   });
 
   final Locale locale;
   final ValueChanged<Locale> onLocaleChanged;
+  final AgricultureDataService? agricultureDataService;
   final InferenceService inferenceService;
   final LocationService locationService;
+  final AuthSession session;
+  final Future<void> Function() onSignOut;
   final StorageService? storageService;
 
   @override
@@ -111,6 +201,7 @@ class _ScanPageState extends State<ScanPage> {
   ScanLocation? _location;
   String _crop = AppConfig.supportedCrops.first;
   String? _error;
+  _LocationSettingsTarget? _locationSettingsTarget;
   bool _isScanning = false;
   bool _isGettingLocation = false;
   bool _scanSavedLocally = false;
@@ -128,9 +219,9 @@ class _ScanPageState extends State<ScanPage> {
       _crop = trimmedCrop;
       _result = null;
       _scanRecord = null;
-      _location = null;
       _scanSavedLocally = false;
       _error = null;
+      _locationSettingsTarget = null;
     });
   }
 
@@ -147,7 +238,6 @@ class _ScanPageState extends State<ScanPage> {
         _image = image;
         _result = null;
         _scanRecord = null;
-        _location = null;
         _scanSavedLocally = false;
         _error = null;
       });
@@ -168,6 +258,7 @@ class _ScanPageState extends State<ScanPage> {
     setState(() {
       _isGettingLocation = true;
       _error = null;
+      _locationSettingsTarget = null;
     });
 
     try {
@@ -191,8 +282,17 @@ class _ScanPageState extends State<ScanPage> {
         LocationFailure.permissionDenied => l10n.locationPermissionDenied,
         LocationFailure.permissionDeniedForever =>
           l10n.locationPermissionDeniedForever,
+        LocationFailure.positionUnavailable => l10n.locationPositionUnavailable,
       };
-      setState(() => _error = message);
+      setState(() {
+        _error = message;
+        _locationSettingsTarget = switch (error.failure) {
+          LocationFailure.servicesDisabled => _LocationSettingsTarget.location,
+          LocationFailure.permissionDeniedForever =>
+            _LocationSettingsTarget.app,
+          _ => null,
+        };
+      });
     } catch (error) {
       if (!mounted) return;
       setState(
@@ -206,32 +306,22 @@ class _ScanPageState extends State<ScanPage> {
     }
   }
 
-  Future<void> _removeLocation() async {
-    final record = _scanRecord;
-    setState(() {
-      _location = null;
-      _error = null;
-      _scanSavedLocally = false;
-    });
+  Future<void> _openLocationSettings() async {
+    final target = _locationSettingsTarget;
+    if (target == null) return;
 
-    if (record == null) return;
-    final updatedRecord = record.copyWith(clearLocation: true);
-    try {
-      await (await _getStorage()).saveScan(updatedRecord);
-      if (!mounted) return;
-      setState(() {
-        _scanRecord = updatedRecord;
-        _scanSavedLocally = true;
-      });
-    } catch (error) {
-      if (!mounted) return;
-      setState(
-        () => _error = AppLocalizations.of(
-          context,
-        )!
-            .errorCouldNotSaveScan(error.toString()),
-      );
-    }
+    final opened = switch (target) {
+      _LocationSettingsTarget.app =>
+        await widget.locationService.openAppSettings(),
+      _LocationSettingsTarget.location =>
+        await widget.locationService.openLocationSettings(),
+    };
+    if (!mounted || opened) return;
+
+    setState(() {
+      _error = AppLocalizations.of(context)!.locationSettingsUnavailable;
+      _locationSettingsTarget = null;
+    });
   }
 
   Future<void> _scan() async {
@@ -239,6 +329,10 @@ class _ScanPageState extends State<ScanPage> {
     if (image == null || _isScanning) return;
     final crop = _crop.trim();
     final l10n = AppLocalizations.of(context)!;
+    if (_location == null) {
+      setState(() => _error = l10n.locationRequired);
+      return;
+    }
     if (crop.isEmpty) {
       setState(() => _error = l10n.plantNameRequired);
       return;
@@ -321,6 +415,29 @@ class _ScanPageState extends State<ScanPage> {
         ),
         centerTitle: false,
         actions: [
+          IconButton(
+            key: const Key('auth-sign-out'),
+            tooltip:
+                '${l10n.authLogOut} (${l10n.authLoggedInAs(widget.session.displayName)})',
+            icon: const Icon(Icons.logout),
+            onPressed: widget.onSignOut,
+          ),
+          IconButton(
+            key: const Key('open-agriculture-tools'),
+            tooltip: 'Agriculture tools',
+            icon: const Icon(Icons.grid_view_rounded),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => AgricultureHubPage(
+                    service: widget.agricultureDataService ??
+                        _createAgricultureDataService(),
+                    storageService: widget.storageService,
+                  ),
+                ),
+              );
+            },
+          ),
           Tooltip(
             message: l10n.languageLabel,
             child: DropdownButton<Locale>(
@@ -377,7 +494,21 @@ class _ScanPageState extends State<ScanPage> {
               ],
               const SizedBox(height: 24),
               _SectionHeading(
+                key: const Key('photo-section-heading'),
                 number: '01',
+                title: l10n.choosePhoto,
+              ),
+              const SizedBox(height: 10),
+              _PhotoPickerCard(
+                image: _image,
+                isBusy: _isScanning,
+                onGallery: () => _pickImage(ImageSource.gallery),
+                onCamera: () => _pickImage(ImageSource.camera),
+              ),
+              const SizedBox(height: 24),
+              _SectionHeading(
+                key: const Key('crop-section-heading'),
+                number: '02',
                 title: l10n.plantNameLabel,
               ),
               const SizedBox(height: 10),
@@ -439,36 +570,7 @@ class _ScanPageState extends State<ScanPage> {
               ),
               const SizedBox(height: 24),
               _SectionHeading(
-                number: '02',
-                title: l10n.choosePhoto,
-              ),
-              const SizedBox(height: 10),
-              _PhotoPickerCard(
-                image: _image,
-                isBusy: _isScanning,
-                onGallery: () => _pickImage(ImageSource.gallery),
-                onCamera: () => _pickImage(ImageSource.camera),
-              ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                key: const Key('analyze-photo'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(54),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                ),
-                onPressed: _image == null || _isScanning ? null : _scan,
-                icon: _isScanning
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.auto_awesome),
-                label: Text(_isScanning ? l10n.analyzing : l10n.analyzePhoto),
-              ),
-              const SizedBox(height: 24),
-              _SectionHeading(
+                key: const Key('location-section-heading'),
                 number: '03',
                 title: l10n.locationTitle,
               ),
@@ -477,11 +579,43 @@ class _ScanPageState extends State<ScanPage> {
                 location: _location,
                 isLoading: _isGettingLocation,
                 onAdd: _addLocation,
-                onRemove: _removeLocation,
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                key: const Key('analyze-photo'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+                onPressed: _image == null ||
+                        _location == null ||
+                        _isScanning ||
+                        _isGettingLocation
+                    ? null
+                    : _scan,
+                icon: _isScanning
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.auto_awesome),
+                label: Text(_isScanning ? l10n.analyzing : l10n.analyzePhoto),
               ),
               if (_error case final error?) ...[
                 const SizedBox(height: 16),
                 _InfoCard(icon: Icons.error_outline, message: error),
+                if (_locationSettingsTarget != null)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      key: const Key('open-location-settings'),
+                      onPressed: _openLocationSettings,
+                      icon: const Icon(Icons.settings),
+                      label: Text(AppLocalizations.of(context)!.openSettings),
+                    ),
+                  ),
               ],
               if (_result case final result?) ...[
                 const SizedBox(height: 24),
@@ -563,7 +697,11 @@ class _WelcomeCard extends StatelessWidget {
 }
 
 class _SectionHeading extends StatelessWidget {
-  const _SectionHeading({required this.number, required this.title});
+  const _SectionHeading({
+    super.key,
+    required this.number,
+    required this.title,
+  });
 
   final String number;
   final String title;
@@ -707,59 +845,122 @@ class _LocationCard extends StatelessWidget {
     required this.location,
     required this.isLoading,
     required this.onAdd,
-    required this.onRemove,
   });
 
   final ScanLocation? location;
   final bool isLoading;
   final VoidCallback onAdd;
-  final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Card(
+      color: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: BorderSide(
+          color: location == null
+              ? const Color(0xFFDBB965)
+              : const Color(0xFFB7D0B8),
+        ),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+        padding: const EdgeInsets.all(18),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l10n.locationTitle,
-                style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text(l10n.locationPrivacyNotice),
-            const SizedBox(height: 8),
-            if (location case final currentLocation?) ...[
-              Text(
-                l10n.locationCoordinates(
-                  currentLocation.latitude.toStringAsFixed(4),
-                  currentLocation.longitude.toStringAsFixed(4),
-                ),
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: location == null
+                    ? const Color(0xFFFFF3D6)
+                    : const Color(0xFFE7F1E5),
+                borderRadius: BorderRadius.circular(14),
               ),
-              Align(
-                alignment: AlignmentDirectional.centerEnd,
-                child: TextButton.icon(
-                  onPressed: isLoading ? null : onRemove,
-                  icon: const Icon(Icons.location_off_outlined),
-                  label: Text(l10n.removeLocation),
-                ),
+              child: Icon(
+                location == null ? Icons.location_searching : Icons.location_on,
+                color: const Color(0xFF356B46),
               ),
-            ] else
-              Align(
-                alignment: AlignmentDirectional.centerEnd,
-                child: OutlinedButton.icon(
-                  onPressed: isLoading ? null : onAdd,
-                  icon: isLoading
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.my_location),
-                  label: Text(
-                    isLoading ? l10n.gettingLocation : l10n.addLocation,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.locationTitle,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: location == null
+                              ? const Color(0xFFFFF3D6)
+                              : const Color(0xFFE7F1E5),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          location == null
+                              ? l10n.requiredLabel
+                              : l10n.readyLabel,
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: const Color(0xFF315F40),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
+                  const SizedBox(height: 6),
+                  Text(l10n.locationPrivacyNotice),
+                  if (location case final currentLocation?) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      l10n.locationCoordinates(
+                        currentLocation.latitude.toStringAsFixed(4),
+                        currentLocation.longitude.toStringAsFixed(4),
+                      ),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  FilledButton.tonalIcon(
+                    key: const Key('set-required-location'),
+                    onPressed: isLoading ? null : onAdd,
+                    icon: isLoading
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            location == null
+                                ? Icons.my_location
+                                : Icons.refresh,
+                          ),
+                    label: Text(
+                      isLoading
+                          ? l10n.gettingLocation
+                          : location == null
+                              ? l10n.addLocation
+                              : l10n.updateLocation,
+                    ),
+                  ),
+                ],
               ),
+            ),
           ],
         ),
       ),

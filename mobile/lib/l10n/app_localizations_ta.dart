@@ -132,20 +132,33 @@ class AppLocalizationsTa extends AppLocalizations {
   }
 
   @override
-  String get locationTitle => 'விருப்ப இடம்';
+  String get locationTitle => 'பண்ணை இருப்பிடம்';
 
   @override
   String get locationPrivacyNotice =>
-      'இடத்தைச் சேர் என்பதைத் தேர்ந்தெடுத்தால் மட்டுமே உங்கள் இருப்பிடம் கேட்கப்படும். சேர்க்கப்படும் ஆயத்தொலைவுகள் இந்தச் சாதனத்தில் இந்தப் பதிவுடன் சேமிக்கப்படும்.';
+      'ஒவ்வொரு பதிவுக்கும் இருப்பிடம் அவசியம். பொத்தானைத் தட்டினால் மட்டுமே இருப்பிடம் கேட்கப்படும்; அது இந்தச் சாதனத்தில் பதிவுடன் சேமிக்கப்படும்.';
 
   @override
-  String get addLocation => 'இடத்தைச் சேர்க்கவும்';
+  String get requiredLabel => 'அவசியம்';
+
+  @override
+  String get readyLabel => 'தயார்';
+
+  @override
+  String get addLocation => 'எனது இருப்பிடத்தைப் பயன்படுத்து';
+
+  @override
+  String get updateLocation => 'இருப்பிடத்தைப் புதுப்பி';
 
   @override
   String get removeLocation => 'இடத்தை நீக்கவும்';
 
   @override
   String get gettingLocation => 'இருப்பிடத்தைப் பெறுகிறது...';
+
+  @override
+  String get locationRequired =>
+      'பயிரைப் பகுப்பாய்வு செய்வதற்கு முன் பண்ணை இருப்பிடத்தை அமைக்கவும்.';
 
   @override
   String locationCoordinates(String latitude, String longitude) {
@@ -158,11 +171,22 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get locationPermissionDenied =>
-      'இருப்பிட அனுமதி மறுக்கப்பட்டது. இந்தப் பதிவில் இடத்தைச் சேர்க்க அனுமதி வழங்கவும்.';
+      'இருப்பிட அனுமதி மறுக்கப்பட்டது. பதிவைத் தொடர இருப்பிட அனுமதி வழங்கவும்.';
 
   @override
   String get locationPermissionDeniedForever =>
-      'இருப்பிட அனுமதி தடுக்கப்பட்டுள்ளது. இடத்தைச் சேர்க்க உலாவி அல்லது சாதன அமைப்புகளில் அனுமதிக்கவும்.';
+      'இருப்பிட அனுமதி தடுக்கப்பட்டுள்ளது. படம் எடுக்க உலாவி அல்லது சாதன அமைப்புகளில் அனுமதிக்கவும்.';
+
+  @override
+  String get locationPositionUnavailable =>
+      '60 விநாடிகளில் GPS இருப்பிடத்தைப் பெற முடியவில்லை. சிக்னலைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.';
+
+  @override
+  String get locationSettingsUnavailable =>
+      'அமைப்புகளைத் திறக்க முடியவில்லை. சாதன அமைப்புகளைத் திறந்து மீண்டும் முயற்சிக்கவும்.';
+
+  @override
+  String get openSettings => 'அமைப்புகளைத் திற';
 
   @override
   String locationRequestFailed(String error) {
@@ -213,4 +237,102 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get diseaseLeafBlast => 'இலைக் கருகல் நோய்';
+
+  @override
+  String get authWelcomeTitle => 'AgroLens-க்கு வரவேற்கிறோம்';
+
+  @override
+  String get authWelcomeSubtitle => 'பயிர்களைப் பராமரிக்கத் தொடர உள்நுழையவும்.';
+
+  @override
+  String get authIdentifier => 'மின்னஞ்சல் அல்லது பயனர் பெயர்';
+
+  @override
+  String get authPassword => 'கடவுச்சொல்';
+
+  @override
+  String get authConfirmPassword => 'கடவுச்சொல்லை உறுதிப்படுத்தவும்';
+
+  @override
+  String get authEmail => 'மின்னஞ்சல்';
+
+  @override
+  String get authUsername => 'பயனர் பெயர்';
+
+  @override
+  String get authForgotPassword => 'கடவுச்சொல் மறந்துவிட்டதா?';
+
+  @override
+  String get authLogin => 'உள்நுழை';
+
+  @override
+  String get authSignUp => 'பதிவு செய்';
+
+  @override
+  String get authCreateAccount => 'கணக்கை உருவாக்கவும்';
+
+  @override
+  String get authNoAccount => 'AgroLens-க்கு புதியவரா?';
+
+  @override
+  String get authHaveAccount => 'ஏற்கனவே கணக்கு உள்ளதா?';
+
+  @override
+  String get authSendResetLink => 'மீட்டமைப்பு இணைப்பை அனுப்பு';
+
+  @override
+  String get authResetPasswordTitle => 'கடவுச்சொல்லை மீட்டமை';
+
+  @override
+  String get authResetPasswordSubtitle =>
+      'மின்னஞ்சலை உள்ளிடவும்; கணக்கு இருந்தால் மீட்டமைப்பு இணைப்பு அனுப்பப்படும்.';
+
+  @override
+  String get authBackToLogin => 'உள்நுழைவுக்குத் திரும்பு';
+
+  @override
+  String get authPasswordTooShort => 'குறைந்தது 8 எழுத்துகள் பயன்படுத்தவும்.';
+
+  @override
+  String get authPasswordMismatch => 'கடவுச்சொற்கள் பொருந்தவில்லை.';
+
+  @override
+  String get authEmailInvalid => 'சரியான மின்னஞ்சல் முகவரியை உள்ளிடவும்.';
+
+  @override
+  String get authUsernameRequired => 'பயனர் பெயரை உள்ளிடவும்.';
+
+  @override
+  String get authRequired => 'இந்தப் புலம் அவசியம்.';
+
+  @override
+  String get authUnexpectedError =>
+      'ஏதோ தவறு ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்.';
+
+  @override
+  String get authResetSent =>
+      'இந்த மின்னஞ்சலுக்கு கணக்கு இருந்தால், மீட்டமைப்பு இணைப்பு அனுப்பப்படும்.';
+
+  @override
+  String get authLoggingIn => 'உள்நுழைகிறது…';
+
+  @override
+  String get authCreatingAccount => 'கணக்கு உருவாக்கப்படுகிறது…';
+
+  @override
+  String get authSendingReset => 'அனுப்புகிறது…';
+
+  @override
+  String get authShowPassword => 'கடவுச்சொல்லைக் காட்டு';
+
+  @override
+  String get authHidePassword => 'கடவுச்சொல்லை மறை';
+
+  @override
+  String authLoggedInAs(String name) {
+    return '$name ஆக உள்நுழைந்துள்ளீர்கள்';
+  }
+
+  @override
+  String get authLogOut => 'வெளியேறு';
 }

@@ -131,20 +131,33 @@ class AppLocalizationsKn extends AppLocalizations {
   }
 
   @override
-  String get locationTitle => 'ಐಚ್ಛಿಕ ಸ್ಥಳ';
+  String get locationTitle => 'ಕೃಷಿ ಭೂಮಿಯ ಸ್ಥಳ';
 
   @override
   String get locationPrivacyNotice =>
-      'ನೀವು ಸ್ಥಳ ಸೇರಿಸಿ ಆಯ್ಕೆ ಮಾಡಿದಾಗ ಮಾತ್ರ ನಿಮ್ಮ ಸ್ಥಳವನ್ನು ಕೇಳಲಾಗುತ್ತದೆ. ಸೇರಿಸಿದ ನಿರ್ದೇಶಾಂಕಗಳನ್ನು ಈ ಸಾಧನದಲ್ಲಿ ಈ ಸ್ಕ್ಯಾನ್‌ನೊಂದಿಗೆ ಉಳಿಸಲಾಗುತ್ತದೆ.';
+      'ಪ್ರತಿ ಸ್ಕ್ಯಾನ್‌ಗೆ ಸ್ಥಳ ಅಗತ್ಯ. ಗುಂಡಿಯನ್ನು ಒತ್ತಿದಾಗ ಮಾತ್ರ ಸ್ಥಳವನ್ನು ಕೇಳಲಾಗುತ್ತದೆ ಮತ್ತು ಈ ಸಾಧನದಲ್ಲಿ ಸ್ಕ್ಯಾನ್‌ನೊಂದಿಗೆ ಉಳಿಸಲಾಗುತ್ತದೆ.';
 
   @override
-  String get addLocation => 'ಸ್ಥಳ ಸೇರಿಸಿ';
+  String get requiredLabel => 'ಅಗತ್ಯ';
+
+  @override
+  String get readyLabel => 'ಸಿದ್ಧ';
+
+  @override
+  String get addLocation => 'ನನ್ನ ಸ್ಥಳ ಬಳಸಿ';
+
+  @override
+  String get updateLocation => 'ಸ್ಥಳ ನವೀಕರಿಸಿ';
 
   @override
   String get removeLocation => 'ಸ್ಥಳ ತೆಗೆದುಹಾಕಿ';
 
   @override
   String get gettingLocation => 'ಸ್ಥಳ ಪಡೆಯಲಾಗುತ್ತಿದೆ...';
+
+  @override
+  String get locationRequired =>
+      'ಬೆಳೆಯನ್ನು ವಿಶ್ಲೇಷಿಸುವ ಮೊದಲು ಕೃಷಿ ಭೂಮಿಯ ಸ್ಥಳವನ್ನು ಹೊಂದಿಸಿ.';
 
   @override
   String locationCoordinates(String latitude, String longitude) {
@@ -157,11 +170,22 @@ class AppLocalizationsKn extends AppLocalizations {
 
   @override
   String get locationPermissionDenied =>
-      'ಸ್ಥಳ ಅನುಮತಿ ನಿರಾಕರಿಸಲಾಗಿದೆ. ಈ ಸ್ಕ್ಯಾನ್‌ಗೆ ಸ್ಥಳ ಸೇರಿಸಲು ಅನುಮತಿ ನೀಡಿ.';
+      'ಸ್ಥಳ ಅನುಮತಿ ನಿರಾಕರಿಸಲಾಗಿದೆ. ಸ್ಕ್ಯಾನ್ ಮುಂದುವರಿಸಲು ಸ್ಥಳ ಅನುಮತಿ ನೀಡಿ.';
 
   @override
   String get locationPermissionDeniedForever =>
-      'ಸ್ಥಳ ಅನುಮತಿಯನ್ನು ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ. ಸ್ಥಳ ಸೇರಿಸಲು ಬ್ರೌಸರ್ ಅಥವಾ ಸಾಧನದ ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಅನುಮತಿಸಿ.';
+      'ಸ್ಥಳ ಅನುಮತಿಯನ್ನು ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ. ಸ್ಕ್ಯಾನ್ ಮಾಡಲು ಬ್ರೌಸರ್ ಅಥವಾ ಸಾಧನದ ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಅನುಮತಿಸಿ.';
+
+  @override
+  String get locationPositionUnavailable =>
+      '60 ಸೆಕೆಂಡುಗಳಲ್ಲಿ GPS ಸ್ಥಳ ಸಿಗಲಿಲ್ಲ. ಸಿಗ್ನಲ್ ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
+
+  @override
+  String get locationSettingsUnavailable =>
+      'ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಲಾಗಲಿಲ್ಲ. ಸಾಧನದ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ ಮತ್ತು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
+
+  @override
+  String get openSettings => 'ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ';
 
   @override
   String locationRequestFailed(String error) {
@@ -212,4 +236,102 @@ class AppLocalizationsKn extends AppLocalizations {
 
   @override
   String get diseaseLeafBlast => 'ಎಲೆ ಸಿಡಿತ ರೋಗ';
+
+  @override
+  String get authWelcomeTitle => 'AgroLens‌ಗೆ ಸ್ವಾಗತ';
+
+  @override
+  String get authWelcomeSubtitle =>
+      'ನಿಮ್ಮ ಬೆಳೆಗಳ ಆರೈಕೆಯನ್ನು ಮುಂದುವರಿಸಲು ಸೈನ್ ಇನ್ ಮಾಡಿ.';
+
+  @override
+  String get authIdentifier => 'ಇಮೇಲ್ ಅಥವಾ ಬಳಕೆದಾರ ಹೆಸರು';
+
+  @override
+  String get authPassword => 'ಪಾಸ್‌ವರ್ಡ್';
+
+  @override
+  String get authConfirmPassword => 'ಪಾಸ್‌ವರ್ಡ್ ದೃಢೀಕರಿಸಿ';
+
+  @override
+  String get authEmail => 'ಇಮೇಲ್';
+
+  @override
+  String get authUsername => 'ಬಳಕೆದಾರ ಹೆಸರು';
+
+  @override
+  String get authForgotPassword => 'ಪಾಸ್‌ವರ್ಡ್ ಮರೆತಿರಾ?';
+
+  @override
+  String get authLogin => 'ಲಾಗಿನ್';
+
+  @override
+  String get authSignUp => 'ಸೈನ್ ಅಪ್';
+
+  @override
+  String get authCreateAccount => 'ನಿಮ್ಮ ಖಾತೆ ರಚಿಸಿ';
+
+  @override
+  String get authNoAccount => 'AgroLens‌ಗೆ ಹೊಸಬರೇ?';
+
+  @override
+  String get authHaveAccount => 'ಈಗಾಗಲೇ ಖಾತೆ ಇದೆಯೇ?';
+
+  @override
+  String get authSendResetLink => 'ಮರುಹೊಂದಿಕೆ ಲಿಂಕ್ ಕಳುಹಿಸಿ';
+
+  @override
+  String get authResetPasswordTitle => 'ಪಾಸ್‌ವರ್ಡ್ ಮರುಹೊಂದಿಸಿ';
+
+  @override
+  String get authResetPasswordSubtitle =>
+      'ಇಮೇಲ್ ನಮೂದಿಸಿ; ಖಾತೆ ಇದ್ದರೆ ಮರುಹೊಂದಿಕೆ ಲಿಂಕ್ ಕಳುಹಿಸುತ್ತೇವೆ.';
+
+  @override
+  String get authBackToLogin => 'ಲಾಗಿನ್‌ಗೆ ಹಿಂತಿರುಗಿ';
+
+  @override
+  String get authPasswordTooShort => 'ಕನಿಷ್ಠ 8 ಅಕ್ಷರಗಳನ್ನು ಬಳಸಿ.';
+
+  @override
+  String get authPasswordMismatch => 'ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ.';
+
+  @override
+  String get authEmailInvalid => 'ಮಾನ್ಯ ಇಮೇಲ್ ವಿಳಾಸ ನಮೂದಿಸಿ.';
+
+  @override
+  String get authUsernameRequired => 'ಬಳಕೆದಾರ ಹೆಸರನ್ನು ನಮೂದಿಸಿ.';
+
+  @override
+  String get authRequired => 'ಈ ಕ್ಷೇತ್ರ ಅಗತ್ಯವಿದೆ.';
+
+  @override
+  String get authUnexpectedError => 'ಏನೋ ತಪ್ಪಾಗಿದೆ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
+
+  @override
+  String get authResetSent =>
+      'ಈ ಇಮೇಲ್‌ಗೆ ಖಾತೆ ಇದ್ದರೆ, ಮರುಹೊಂದಿಕೆ ಲಿಂಕ್ ಕಳುಹಿಸಲಾಗುತ್ತದೆ.';
+
+  @override
+  String get authLoggingIn => 'ಸೈನ್ ಇನ್ ಆಗುತ್ತಿದೆ…';
+
+  @override
+  String get authCreatingAccount => 'ಖಾತೆ ರಚಿಸಲಾಗುತ್ತಿದೆ…';
+
+  @override
+  String get authSendingReset => 'ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ…';
+
+  @override
+  String get authShowPassword => 'ಪಾಸ್‌ವರ್ಡ್ ತೋರಿಸಿ';
+
+  @override
+  String get authHidePassword => 'ಪಾಸ್‌ವರ್ಡ್ ಮರೆಮಾಡಿ';
+
+  @override
+  String authLoggedInAs(String name) {
+    return '$name ಆಗಿ ಸೈನ್ ಇನ್ ಆಗಿದ್ದೀರಿ';
+  }
+
+  @override
+  String get authLogOut => 'ಲಾಗ್ ಔಟ್';
 }

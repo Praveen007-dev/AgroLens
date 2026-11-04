@@ -131,20 +131,33 @@ class AppLocalizationsTe extends AppLocalizations {
   }
 
   @override
-  String get locationTitle => 'ఐచ్ఛిక స్థానం';
+  String get locationTitle => 'పొలం స్థానం';
 
   @override
   String get locationPrivacyNotice =>
-      'మీరు స్థానం జోడించండి ఎంచుకున్నప్పుడే మీ స్థానాన్ని అడుగుతాము. జోడించిన కోఆర్డినేట్లు ఈ పరికరంలో ఈ స్కాన్‌తో సేవ్ అవుతాయి.';
+      'ప్రతి స్కాన్‌కు స్థానం అవసరం. మీరు బటన్‌ను నొక్కినప్పుడే స్థానం అడుగుతాము; ఇది ఈ పరికరంలో స్కాన్‌తో సేవ్ అవుతుంది.';
 
   @override
-  String get addLocation => 'స్థానాన్ని జోడించండి';
+  String get requiredLabel => 'అవసరం';
+
+  @override
+  String get readyLabel => 'సిద్ధం';
+
+  @override
+  String get addLocation => 'నా స్థానాన్ని ఉపయోగించండి';
+
+  @override
+  String get updateLocation => 'స్థానాన్ని నవీకరించండి';
 
   @override
   String get removeLocation => 'స్థానాన్ని తొలగించండి';
 
   @override
   String get gettingLocation => 'స్థానాన్ని పొందుతోంది...';
+
+  @override
+  String get locationRequired =>
+      'పంటను విశ్లేషించే ముందు పొలం స్థానాన్ని సెట్ చేయండి.';
 
   @override
   String locationCoordinates(String latitude, String longitude) {
@@ -157,11 +170,22 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get locationPermissionDenied =>
-      'స్థాన అనుమతి నిరాకరించబడింది. ఈ స్కాన్‌కు స్థానం జోడించడానికి అనుమతించండి.';
+      'స్థాన అనుమతి నిరాకరించబడింది. స్కాన్ కొనసాగించడానికి స్థాన అనుమతి ఇవ్వండి.';
 
   @override
   String get locationPermissionDeniedForever =>
-      'స్థాన అనుమతి బ్లాక్ చేయబడింది. స్థానం జోడించడానికి బ్రౌజర్ లేదా పరికర సెట్టింగ్‌లలో అనుమతించండి.';
+      'స్థాన అనుమతి బ్లాక్ చేయబడింది. స్కాన్ చేయడానికి బ్రౌజర్ లేదా పరికర సెట్టింగ్‌లలో అనుమతించండి.';
+
+  @override
+  String get locationPositionUnavailable =>
+      '60 సెకన్లలో GPS స్థానం లభించలేదు. సిగ్నల్‌ను తనిఖీ చేసి మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get locationSettingsUnavailable =>
+      'సెట్టింగ్‌లు తెరవలేకపోయాము. పరికర సెట్టింగ్‌లను తెరిచి మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get openSettings => 'సెట్టింగ్‌లను తెరవండి';
 
   @override
   String locationRequestFailed(String error) {
@@ -212,4 +236,102 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get diseaseLeafBlast => 'ఆకు అగ్గి తెగులు';
+
+  @override
+  String get authWelcomeTitle => 'AgroLens‌కు స్వాగతం';
+
+  @override
+  String get authWelcomeSubtitle =>
+      'మీ పంటల సంరక్షణ కొనసాగించడానికి సైన్ ఇన్ చేయండి.';
+
+  @override
+  String get authIdentifier => 'ఈమెయిల్ లేదా వినియోగదారు పేరు';
+
+  @override
+  String get authPassword => 'పాస్‌వర్డ్';
+
+  @override
+  String get authConfirmPassword => 'పాస్‌వర్డ్‌ను నిర్ధారించండి';
+
+  @override
+  String get authEmail => 'ఈమెయిల్';
+
+  @override
+  String get authUsername => 'వినియోగదారు పేరు';
+
+  @override
+  String get authForgotPassword => 'పాస్‌వర్డ్ మర్చిపోయారా?';
+
+  @override
+  String get authLogin => 'లాగిన్';
+
+  @override
+  String get authSignUp => 'సైన్ అప్';
+
+  @override
+  String get authCreateAccount => 'మీ ఖాతాను సృష్టించండి';
+
+  @override
+  String get authNoAccount => 'AgroLens‌కు కొత్తవారా?';
+
+  @override
+  String get authHaveAccount => 'ఇప్పటికే ఖాతా ఉందా?';
+
+  @override
+  String get authSendResetLink => 'రీసెట్ లింక్ పంపండి';
+
+  @override
+  String get authResetPasswordTitle => 'పాస్‌వర్డ్ రీసెట్ చేయండి';
+
+  @override
+  String get authResetPasswordSubtitle =>
+      'ఈమెయిల్ నమోదు చేయండి. ఖాతా ఉంటే రీసెట్ లింక్ పంపుతాము.';
+
+  @override
+  String get authBackToLogin => 'లాగిన్‌కు తిరిగి వెళ్ళండి';
+
+  @override
+  String get authPasswordTooShort => 'కనీసం 8 అక్షరాలు ఉపయోగించండి.';
+
+  @override
+  String get authPasswordMismatch => 'పాస్‌వర్డ్‌లు సరిపోలలేదు.';
+
+  @override
+  String get authEmailInvalid => 'చెల్లుబాటు అయ్యే ఈమెయిల్ నమోదు చేయండి.';
+
+  @override
+  String get authUsernameRequired => 'వినియోగదారు పేరును నమోదు చేయండి.';
+
+  @override
+  String get authRequired => 'ఈ ఫీల్డ్ తప్పనిసరి.';
+
+  @override
+  String get authUnexpectedError => 'ఏదో తప్పు జరిగింది. మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get authResetSent =>
+      'ఈ ఈమెయిల్‌కు ఖాతా ఉంటే, పాస్‌వర్డ్ రీసెట్ లింక్ పంపబడుతుంది.';
+
+  @override
+  String get authLoggingIn => 'సైన్ ఇన్ అవుతోంది…';
+
+  @override
+  String get authCreatingAccount => 'ఖాతా సృష్టిస్తోంది…';
+
+  @override
+  String get authSendingReset => 'పంపుతోంది…';
+
+  @override
+  String get authShowPassword => 'పాస్‌వర్డ్ చూపించు';
+
+  @override
+  String get authHidePassword => 'పాస్‌వర్డ్ దాచు';
+
+  @override
+  String authLoggedInAs(String name) {
+    return '$nameగా సైన్ ఇన్ అయ్యారు';
+  }
+
+  @override
+  String get authLogOut => 'లాగ్ అవుట్';
 }

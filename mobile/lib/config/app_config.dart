@@ -9,7 +9,8 @@ class AppConfig {
   // AI Inference Configuration
   static const double lowConfidenceThreshold = 0.60;
   static const String defaultModelVersion = 'agrolens-tflite-v1.0.0-rc1';
-  static const String modelAssetPath = 'assets/models/crop_disease_model.tflite';
+  static const String modelAssetPath =
+      'assets/models/crop_disease_model.tflite';
   static const String labelsAssetPath = 'assets/models/labels.txt';
   static const int modelInputSize = 224; // 224x224 RGB
 
@@ -19,9 +20,13 @@ class AppConfig {
   static const Duration apiTimeout = Duration(seconds: 10);
 
   // Runtime Mode Flags
-  static bool useMockInference = true; // Set to false when Member 1's TFLite model is dropped in
-  static bool useMockApi = true;       // Set to false when Member 3's FastAPI backend is running
-  static bool allowOfflineQueue = true; // Stores scans locally if backend is unavailable
+  static bool useMockInference =
+      true; // Set to false when Member 1's TFLite model is dropped in
+  // Agriculture feature responses remain development samples until the
+  // corresponding backend endpoints are implemented.
+  static bool useMockApi = true;
+  static bool allowOfflineQueue =
+      true; // Stores scans locally if backend is unavailable
 
   // Supported Crops
   static const List<String> supportedCrops = [
