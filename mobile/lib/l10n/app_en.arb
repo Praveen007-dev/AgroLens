@@ -1,0 +1,125 @@
+{
+  "@@locale": "en",
+  "appTitle": "AgroLens",
+  "languageLabel": "Language",
+  "languageEnglish": "English",
+  "languageHindi": "हिन्दी",
+  "languageTelugu": "తెలుగు",
+  "languageTamil": "தமிழ்",
+  "languageKannada": "ಕನ್ನಡ",
+  "checkYourCrop": "A healthier harvest starts here",
+  "scanIntroduction": "Photograph a leaf to check for visible crop health issues.",
+  "plantNameLabel": "Plant or crop",
+  "plantNameHint": "Type any plant name",
+  "plantNameRequired": "Enter the plant or crop name first.",
+  "supportedCropsTitle": "Quick select",
+  "modelCoverageNotice": "Any plant name can be entered. This demo uses simulated results, not image recognition. Its placeholder labels cover tomato, potato, corn, bell pepper, and rice only.",
+  "cropNotSupported": "The demo cannot analyze {crop} yet. No diagnosis was made. Its placeholder labels cover tomato, potato, corn, bell pepper, and rice only.",
+  "@cropNotSupported": {
+    "placeholders": {
+      "crop": {
+        "type": "String"
+      }
+    }
+  },
+  "demoModeNotice": "Demo mode: predictions are simulated and are not a diagnosis.",
+  "cropLabel": "Crop",
+  "cropTomato": "Tomato",
+  "cropPotato": "Potato",
+  "cropCorn": "Corn",
+  "cropPepper": "Bell pepper",
+  "cropRice": "Rice",
+  "choosePhoto": "Choose a photo",
+  "takePhoto": "Take a photo",
+  "photoActionsHint": "Use a clear, well-lit photo of one affected leaf.",
+  "photoSelected": "Photo selected",
+  "analyzePhoto": "Analyze photo",
+  "analyzing": "Analyzing...",
+  "errorCouldNotOpenPhoto": "Could not open the image: {error}",
+  "@errorCouldNotOpenPhoto": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorCouldNotAnalyzePhoto": "Could not analyze this image: {error}",
+  "@errorCouldNotAnalyzePhoto": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorCouldNotSaveScan": "The prediction is ready, but the scan could not be saved on this device: {error}",
+  "@errorCouldNotSaveScan": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "predictionTitle": "Prediction",
+  "resultSummary": "{crop} · {confidence} confidence",
+  "@resultSummary": {
+    "placeholders": {
+      "crop": {
+        "type": "String"
+      },
+      "confidence": {
+        "type": "String"
+      }
+    }
+  },
+  "lowConfidenceWarning": "Low confidence. Try a clearer photo and confirm the result with an agricultural expert.",
+  "modelVersion": "Model: {version}",
+  "@modelVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "locationTitle": "Optional location",
+  "locationPrivacyNotice": "Your location is only requested if you choose Add location. If added, coordinates are saved with this scan on this device.",
+  "addLocation": "Add location",
+  "removeLocation": "Remove location",
+  "gettingLocation": "Getting location...",
+  "locationCoordinates": "Coordinates: {latitude}, {longitude}",
+  "@locationCoordinates": {
+    "placeholders": {
+      "latitude": {
+        "type": "String"
+      },
+      "longitude": {
+        "type": "String"
+      }
+    }
+  },
+  "locationServiceDisabled": "Location services are turned off. Turn them on and try again.",
+  "locationPermissionDenied": "Location permission was denied. Allow location access to add a location to this scan.",
+  "locationPermissionDeniedForever": "Location permission is blocked. Enable it in your browser or device settings to add a location.",
+  "locationRequestFailed": "Could not get your location: {error}",
+  "@locationRequestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scanSavedLocally": "Scan saved on this device.",
+  "diseaseHealthy": "Healthy plant",
+  "diseaseBacterialSpot": "Bacterial spot",
+  "diseaseEarlyBlight": "Early blight",
+  "diseaseLateBlight": "Late blight",
+  "diseaseLeafMold": "Leaf mold",
+  "diseaseSeptoriaLeafSpot": "Septoria leaf spot",
+  "diseaseSpiderMites": "Two-spotted spider mite",
+  "diseaseTargetSpot": "Target spot",
+  "diseaseYellowLeafCurlVirus": "Yellow leaf curl virus",
+  "diseaseMosaicVirus": "Mosaic virus",
+  "diseaseCommonRust": "Common rust",
+  "diseaseNorthernLeafBlight": "Northern leaf blight",
+  "diseaseBrownSpot": "Brown spot",
+  "diseaseLeafBlast": "Leaf blast"
+}
