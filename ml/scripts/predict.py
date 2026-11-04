@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -35,18 +36,30 @@ def load_model(checkpoint_path: Path, device: torch.device):
         raise FileNotFoundError(f"checkpoint not found: {checkpoint_path}")
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
     labels = checkpoint.get("classes")
-    if not isinstance(labels, list) or not labels:
+    if (
+        not isinstance(labels, list)
+        or not labels
+        or not all(isinstance(label, str) and label for label in labels)
+    ):
         raise ValueError("checkpoint does not contain a valid class list")
     architecture = checkpoint.get("architecture", "MobileNetV3-Small")
     if architecture == "MobileNetV3-Large":
         model = models.mobilenet_v3_large(weights=None)
-    else:
+    elif architecture == "MobileNetV3-Small":
         model = models.mobilenet_v3_small(weights=None)
+    else:
+        raise ValueError(f"unsupported model architecture: {architecture}")
+    model_state = checkpoint.get("model_state")
+    if not isinstance(model_state, dict):
+        raise ValueError("checkpoint does not contain a valid model state")
     model.classifier[3] = torch.nn.Linear(model.classifier[3].in_features, len(labels))
-    model.load_state_dict(checkpoint["model_state"])
+    model.load_state_dict(model_state)
     model.to(device)
     model.eval()
-    return model, labels, int(checkpoint.get("image_size", 224)), architecture
+    image_size = checkpoint.get("image_size", 224)
+    if not isinstance(image_size, int) or image_size < 1:
+        raise ValueError("checkpoint contains an invalid image size")
+    return model, labels, image_size, architecture
 
 
 def image_paths(source: Path) -> list[Path]:
@@ -111,6 +124,14 @@ def predict_image(
     image_size: int,
 ):
     """Predict one image and return the shared inference contract shape."""
+    if not labels:
+        raise ValueError("model has no labels")
+    if top_k < 1:
+        raise ValueError("top_k must be positive")
+    if not math.isfinite(threshold) or not 0.0 <= threshold <= 1.0:
+        raise ValueError("threshold must be between 0 and 1")
+    if image_size < 1:
+        raise ValueError("image_size must be positive")
     try:
         with Image.open(path) as image:
             image = image.convert("RGB")
@@ -120,7 +141,14 @@ def predict_image(
         raise ValueError(f"cannot read image: {path}") from exc
 
     with torch.inference_mode():
-        probabilities = torch.softmax(model(batch), dim=1)[0]
+        logits = model(batch)
+        if logits.ndim != 2 or logits.shape != (1, len(labels)):
+            raise ValueError(
+                f"model output must have shape (1, {len(labels)}), got {tuple(logits.shape)}"
+            )
+        probabilities = torch.softmax(logits, dim=1)[0]
+    if not torch.isfinite(probabilities).all():
+        raise ValueError("model output contains non-finite scores")
     values, indices = torch.topk(probabilities, k=min(top_k, len(labels)))
     confidence = float(values[0].item())
     predicted_label = labels[int(indices[0].item())]
@@ -141,7 +169,11 @@ def predict_image(
         "is_low_confidence": needs_better_photo,
         "image_quality": quality,
         "needs_better_photo": needs_better_photo,
-        "model_version": f"{architecture}-lowres-{image_size}px",
+        "model_version": (
+            f"{architecture}-lowres-{image_size}px"
+            if image_size <= 160
+            else f"{architecture}-{image_size}px"
+        ),
         "inference_timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "image_path": str(path),
     }
@@ -157,14 +189,17 @@ def main() -> None:
     parser.add_argument("--json", action="store_true", help="print machine-readable JSON")
     args = parser.parse_args()
     if args.top_k < 1:
-        raise SystemExit("--top-k must be positive")
-    if not 0.0 <= args.threshold <= 1.0:
-        raise SystemExit("--threshold must be between 0 and 1")
-    paths = image_paths(args.image)
-    if not paths:
-        raise SystemExit("no supported images found (.jpg, .jpeg, .png, .bmp, .gif, .webp)")
-    device = torch.device("cpu" if args.cpu or not torch.cuda.is_available() else "cuda")
-    model, labels, image_size, architecture = load_model(args.model, device)
+        parser.error("--top-k must be positive")
+    if not math.isfinite(args.threshold) or not 0.0 <= args.threshold <= 1.0:
+        parser.error("--threshold must be between 0 and 1")
+    try:
+        paths = image_paths(args.image)
+        if not paths:
+            parser.error("no supported images found (.jpg, .jpeg, .png, .bmp, .gif, .webp)")
+        device = torch.device("cpu" if args.cpu or not torch.cuda.is_available() else "cuda")
+        model, labels, image_size, architecture = load_model(args.model, device)
+    except (FileNotFoundError, ValueError, OSError) as exc:
+        parser.error(str(exc))
     transform = transforms.Compose(
         [
             transforms.Resize((image_size, image_size)),
@@ -174,20 +209,23 @@ def main() -> None:
             ),
         ]
     )
-    results = [
-        predict_image(
-            model,
-            labels,
-            transform,
-            path,
-            device,
-            args.top_k,
-            args.threshold,
-            architecture,
-            image_size,
-        )
-        for path in paths
-    ]
+    try:
+        results = [
+            predict_image(
+                model,
+                labels,
+                transform,
+                path,
+                device,
+                args.top_k,
+                args.threshold,
+                architecture,
+                image_size,
+            )
+            for path in paths
+        ]
+    except ValueError as exc:
+        parser.error(str(exc))
     if args.json:
         print(json.dumps(results, indent=2))
         return
