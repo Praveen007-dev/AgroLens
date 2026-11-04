@@ -80,6 +80,11 @@ def main() -> None:
     parser.add_argument("--validation-fraction", type=float, default=0.2)
     parser.add_argument("--image-size", type=int, default=224)
     parser.add_argument(
+        "--architecture",
+        choices=("mobilenet_v3_small", "mobilenet_v3_large"),
+        default="mobilenet_v3_small",
+    )
+    parser.add_argument(
         "--low-resolution",
         action="store_true",
         help="use 160x160 input and low-resolution degradation augmentation",
@@ -137,8 +142,14 @@ def main() -> None:
         Subset(validation_base, validation_indices), batch_size=args.batch_size,
         shuffle=False, num_workers=2, pin_memory=True,
     )
-    weights = models.MobileNet_V3_Small_Weights.DEFAULT
-    model = models.mobilenet_v3_small(weights=weights)
+    if args.architecture == "mobilenet_v3_large":
+        weights = models.MobileNet_V3_Large_Weights.DEFAULT
+        model = models.mobilenet_v3_large(weights=weights)
+        architecture_name = "MobileNetV3-Large"
+    else:
+        weights = models.MobileNet_V3_Small_Weights.DEFAULT
+        model = models.mobilenet_v3_small(weights=weights)
+        architecture_name = "MobileNetV3-Small"
     model.classifier[3] = nn.Linear(model.classifier[3].in_features, len(base.classes))
     model.to(device)
     loss_function = nn.CrossEntropyLoss()
@@ -178,7 +189,7 @@ def main() -> None:
                     "model_state": model.state_dict(),
                     "classes": base.classes,
                     "image_size": args.image_size,
-                    "architecture": "MobileNetV3-Small",
+                    "architecture": architecture_name,
                     "low_resolution": args.low_resolution,
                 },
                 args.output_dir / "best.pt",
@@ -189,7 +200,7 @@ def main() -> None:
     (args.output_dir / "training_summary.json").write_text(
         json.dumps(
             {
-                "architecture": "MobileNetV3-Small",
+                "architecture": architecture_name,
                 "low_resolution": args.low_resolution,
                 "device": torch.cuda.get_device_name(device),
                 "dataset": str(args.dataset),

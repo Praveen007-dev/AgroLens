@@ -25,14 +25,16 @@ def load_model(checkpoint_path: Path, device: torch.device):
     labels = checkpoint.get("classes")
     if not isinstance(labels, list) or not labels:
         raise ValueError("checkpoint does not contain a valid class list")
-    model = models.mobilenet_v3_small(weights=None)
+    architecture = checkpoint.get("architecture", "MobileNetV3-Small")
+    if architecture == "MobileNetV3-Large":
+        model = models.mobilenet_v3_large(weights=None)
+    else:
+        model = models.mobilenet_v3_small(weights=None)
     model.classifier[3] = torch.nn.Linear(model.classifier[3].in_features, len(labels))
     model.load_state_dict(checkpoint["model_state"])
     model.to(device)
     model.eval()
-    return model, labels, int(checkpoint.get("image_size", 224)), checkpoint.get(
-        "architecture", "unknown"
-    )
+    return model, labels, int(checkpoint.get("image_size", 224)), architecture
 
 
 def image_paths(source: Path) -> list[Path]:
