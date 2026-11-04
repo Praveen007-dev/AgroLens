@@ -9,6 +9,7 @@ const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
 
 const AGRONOMIC_GUIDE = {
   "Early Blight": {
+    crop: "Tomato / Potato",
     soil: "Well-aerated sandy loam rich in organic matter; pH 6.0–6.8. Avoid waterlogged or hardpan soils that restrict root aeration.",
     precautions: [
       "Soil Solarization: Cover nursery beds with transparent polyethylene sheets (25-micron) for 30–45 days during summer.",
@@ -18,6 +19,7 @@ const AGRONOMIC_GUIDE = {
     ]
   },
   "Late Blight": {
+    crop: "Tomato / Potato",
     soil: "Light, fertile loam with high drainage capacity; pH 5.8–6.5. Avoid heavy clay soil prone to prolonged moisture saturation.",
     precautions: [
       "Certified Planting Material: Use certified disease-free seed tubers; discard seed tubers exhibiting internal rust-brown discoloration.",
@@ -27,6 +29,7 @@ const AGRONOMIC_GUIDE = {
     ]
   },
   "Bacterial Blight": {
+    crop: "Cotton",
     soil: "Deep, well-drained medium black to alluvial clay loam; pH 6.5–7.5. Avoid soils with acute potassium deficiency.",
     precautions: [
       "Acid Delinting & Seed Dressing: Delint cotton seeds with concentrated sulfuric acid (100 ml/kg) followed by Streptocycline (100 ppm) treatment.",
@@ -36,6 +39,7 @@ const AGRONOMIC_GUIDE = {
     ]
   },
   "Blast Disease": {
+    crop: "Paddy",
     soil: "Clay loam or alluvial soil with high silica content and moderate organic carbon; pH 5.5–6.5. Avoid silica-deficient fields.",
     precautions: [
       "Split N-Fertilization: Avoid heavy single basal doses of nitrogenous fertilizers; adopt split applications based on leaf color chart (LCC).",
@@ -45,6 +49,7 @@ const AGRONOMIC_GUIDE = {
     ]
   },
   "Brown Spot": {
+    crop: "Paddy",
     soil: "Nutrient-depleted soils, specifically those deficient in potassium, zinc, manganese, and organic carbon; pH 5.0–6.5.",
     precautions: [
       "Micronutrient Amelioration: Apply Zinc Sulphate (25 kg/ha) and Potassium Chloride (MOP) as basal or early top-dressing.",
@@ -54,19 +59,13 @@ const AGRONOMIC_GUIDE = {
     ]
   },
   "Common Rust": {
+    crop: "Corn",
     soil: "Loose, well-drained silt loam to sandy loam with neutral pH (6.0–7.2) and balanced N-P-K reserves.",
     precautions: [
       "Resistant Hybrid Selection: Plant certified rust-resistant hybrids during the standard planting window.",
       "Optimum Plant Density: Avoid excessive plant population density; maintain 60–75 cm row spacing to foster airflow.",
       "Timely Protective Spray: Apply Mancozeb (2.5g/L) or Azoxystrobin (1ml/L) as soon as early pustules appear on lower leaves.",
       "Crop Rotation: Rotate fields with non-graminaceous legumes (soybean, gram) to disrupt the pathogen cycle."
-    ]
-  },
-  "Analysis Pending": {
-    soil: "Maintain recommended crop-specific pH and adequate drainage according to standard soil health recommendations.",
-    precautions: [
-      "Isolate suspected leaves and monitor symptom progression for 24–48 hours.",
-      "Avoid indiscriminate chemical spraying until diagnosis is verified by an agronomy expert."
     ]
   }
 };
@@ -154,6 +153,9 @@ export default function App() {
   const [isScanning, setIsScanning] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Standalone Advisory Box State
+  const [advisoryDisease, setAdvisoryDisease] = useState('Early Blight');
+
   // Filter state
   const [filterCrop, setFilterCrop] = useState('');
   const [filterDisease, setFilterDisease] = useState('');
@@ -240,6 +242,7 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {/* Prototype Banner */}
       <div className="banner">
         <div>
           <strong>AgroLens Prototype:</strong> Research analytics dashboard. Not connected to IIHR or government agencies.
@@ -306,24 +309,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Dynamic Crop Soil Preview */}
-        <div style={{
-          marginTop: 14,
-          padding: '10px 14px',
-          background: '#0f172a',
-          borderRadius: 6,
-          border: '1px solid #334155',
-          fontSize: 12,
-          color: '#94a3b8'
-        }}>
-          <strong style={{ color: '#38bdf8' }}>Optimal Soil for {scanCrop}: </strong>
-          {scanCrop === 'Tomato' && 'Loamy, well-draining, pH 6.0–6.8. Rich in calcium to avoid blossom end rot.'}
-          {scanCrop === 'Potato' && 'Loose, well-aerated sandy loam, pH 5.0–6.0. High organic matter.'}
-          {scanCrop === 'Paddy' && 'Clay or clayey loam, pH 5.5–6.5. High water holding capacity.'}
-          {scanCrop === 'Cotton' && 'Deep black clayey soils (regur) or fertile alluvium, pH 6.0–7.5.'}
-          {scanCrop === 'Corn' && 'Well-aerated silt loam or sandy loam, pH 6.0–7.2. High nitrogen requirement.'}
-        </div>
-
         {previewUrl && (
           <div style={{ marginTop: 14 }}>
             <span style={{ fontSize: 12, color: '#94a3b8' }}>Leaf Sample Preview:</span>
@@ -332,6 +317,78 @@ export default function App() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* DEDICATED SEPARATE BOX: SOIL & PRECAUTIONS ADVISORY */}
+      <div style={{
+        background: '#1e293b',
+        border: '1px solid #334155',
+        borderRadius: 8,
+        padding: 20,
+        marginBottom: 24
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 18, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: 8 }}>
+              🌾 Agronomic Advisory: Soil & Precautions Guide
+            </h3>
+            <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#94a3b8' }}>
+              Standard crop protection practices and soil condition recommendations.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label style={{ fontSize: 13, color: '#94a3b8' }}>Select Disease / Target:</label>
+            <select
+              className="filter-input"
+              value={advisoryDisease}
+              onChange={(e) => setAdvisoryDisease(e.target.value)}
+              style={{ minWidth: 180 }}
+            >
+              {Object.keys(AGRONOMIC_GUIDE).map((disease) => (
+                <option key={disease} value={disease}>{disease} ({AGRONOMIC_GUIDE[disease].crop})</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
+          {/* Soil Information Box */}
+          <div style={{
+            background: '#0f172a',
+            border: '1px solid #334155',
+            borderRadius: 6,
+            padding: 16
+          }}>
+            <h4 style={{ margin: '0 0 8px 0', fontSize: 15, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: 6 }}>
+              🌱 Soil Profile & Health Requirements
+            </h4>
+            <p style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>
+              {AGRONOMIC_GUIDE[advisoryDisease]?.soil}
+            </p>
+          </div>
+
+          {/* Precautions Box */}
+          <div style={{
+            background: '#0f172a',
+            border: '1px solid #334155',
+            borderRadius: 6,
+            padding: 16
+          }}>
+            <h4 style={{ margin: '0 0 8px 0', fontSize: 15, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 6 }}>
+              ⚠️ Standard Precautionary & Management Protocols
+            </h4>
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#cbd5e1', lineHeight: 1.5 }}>
+              {AGRONOMIC_GUIDE[advisoryDisease]?.precautions.map((item, idx) => (
+                <li key={idx} style={{ marginBottom: 6 }}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 12, fontSize: 11, color: '#64748b', fontStyle: 'italic' }}>
+          *Synthesized from standard agricultural research management practices for prototype demonstration.
+        </div>
       </div>
 
       {/* Metrics Row */}
@@ -496,12 +553,12 @@ export default function App() {
         </table>
       </div>
 
-      {/* Record Detail Modal with Soil & Precautions */}
+      {/* Record Detail Modal */}
       {selectedScan && (
         <div className="modal-backdrop" onClick={() => setSelectedScan(null)}>
           <div className="modal-box" style={{ maxWidth: 620 }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0, fontSize: 18 }}>Field Record & Agronomic Advisory</h3>
+              <h3 style={{ margin: 0, fontSize: 18 }}>Scan Record Details</h3>
               <span className="badge badge-gray">{selectedScan.scan_id}</span>
             </div>
 
@@ -514,43 +571,12 @@ export default function App() {
               <p><strong>Location:</strong> {selectedScan.location ? `${selectedScan.location.lat}, ${selectedScan.location.lon}` : 'Not provided'}</p>
             </div>
 
-            <hr style={{ borderColor: '#334155', margin: '14px 0' }} />
-
-            {/* Soil Health Section */}
-            <div style={{ marginBottom: 14 }}>
-              <h4 style={{ fontSize: 14, color: '#38bdf8', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                🌱 Soil Profile & Condition Guidelines
-              </h4>
-              <p style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.5, background: '#0f172a', padding: '10px 12px', borderRadius: 6, border: '1px solid #334155' }}>
-                {AGRONOMIC_GUIDE[selectedScan.predicted_disease]?.soil || "Standard fertile agricultural loam with proper drainage."}
-              </p>
-            </div>
-
-            {/* Precautions & Management Section */}
-            <div style={{ marginBottom: 16 }}>
-              <h4 style={{ fontSize: 14, color: '#f59e0b', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                ⚠️ Standard Agronomic Precautions & Management Practices
-              </h4>
-              <ul style={{ fontSize: 13, color: '#cbd5e1', paddingLeft: 20, lineHeight: 1.5 }}>
-                {(AGRONOMIC_GUIDE[selectedScan.predicted_disease]?.precautions || [
-                  "Monitor plant progression daily.",
-                  "Avoid moisture stagnation around roots."
-                ]).map((precaution, idx) => (
-                  <li key={idx} style={{ marginBottom: 6 }}>{precaution}</li>
-                ))}
-              </ul>
-            </div>
-
-            <p style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic', marginBottom: 14 }}>
-              *Standard agricultural management practices shown for prototype educational purposes only. Not affiliated with real institutional servers.
-            </p>
-
             <button
               className="export-btn"
               style={{ width: '100%', justifyContent: 'center' }}
               onClick={() => setSelectedScan(null)}
             >
-              Close Advisory
+              Close
             </button>
           </div>
         </div>
