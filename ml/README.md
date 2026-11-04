@@ -74,7 +74,10 @@ The program uses CUDA automatically when available, applies the checkpoint's
 input size and ImageNet normalization, and prints the predicted label,
 confidence, low-confidence flag, and top-five predictions. Use `--cpu` to force
 CPU inference. A low-confidence result is only a model signal and must not be
-presented as an expert-confirmed diagnosis.
+presented as an expert-confirmed diagnosis. It also checks resolution, exposure,
+contrast, and blur. If a quality check fails, the model predicts background, or
+confidence is low, it sets `needs_better_photo` and recommends retaking the
+image with one well-lit leaf filling most of the frame.
 
 ## Contract interface
 

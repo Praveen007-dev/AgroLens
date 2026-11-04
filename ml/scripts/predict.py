@@ -9,6 +9,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import torch
+import numpy as np
 from PIL import Image, UnidentifiedImageError
 from torchvision import models, transforms
 
@@ -61,6 +62,43 @@ def image_paths(source: Path) -> list[Path]:
     raise FileNotFoundError(f"image path does not exist: {source}")
 
 
+def assess_image_quality(image: Image.Image) -> dict:
+    """Reject images that are too small, blurred, dark, bright, or flat."""
+    rgb = np.asarray(image.convert("RGB"), dtype=np.float32)
+    gray = rgb.mean(axis=2)
+    height, width = gray.shape
+    issues: list[str] = []
+    if min(width, height) < 96:
+        issues.append("image resolution is too low")
+    brightness = float(gray.mean())
+    if brightness < 35:
+        issues.append("image is too dark")
+    elif brightness > 235:
+        issues.append("image is overexposed")
+    contrast = float(gray.std())
+    if contrast < 12:
+        issues.append("image has very low contrast")
+    laplacian = (
+        -4 * gray
+        + np.roll(gray, 1, axis=0)
+        + np.roll(gray, -1, axis=0)
+        + np.roll(gray, 1, axis=1)
+        + np.roll(gray, -1, axis=1)
+    )
+    blur_score = float(laplacian[1:-1, 1:-1].var())
+    if blur_score < 8:
+        issues.append("image appears blurry")
+    return {
+        "width": width,
+        "height": height,
+        "brightness": round(brightness, 2),
+        "contrast": round(contrast, 2),
+        "blur_score": round(blur_score, 2),
+        "is_acceptable": not issues,
+        "issues": issues,
+    }
+
+
 def predict_image(
     model,
     labels,
@@ -76,6 +114,7 @@ def predict_image(
     try:
         with Image.open(path) as image:
             image = image.convert("RGB")
+            quality = assess_image_quality(image)
             batch = transform(image).unsqueeze(0).to(device)
     except (OSError, UnidentifiedImageError) as exc:
         raise ValueError(f"cannot read image: {path}") from exc
@@ -87,6 +126,9 @@ def predict_image(
     predicted_label = labels[int(indices[0].item())]
     crop, _ = label_details(predicted_label)
     is_background = predicted_label in BACKGROUND_LABELS
+    needs_better_photo = bool(
+        quality["issues"] or is_background or confidence < threshold
+    )
     return {
         "prediction_id": str(uuid4()),
         "crop": crop,
@@ -96,7 +138,9 @@ def predict_image(
             {"label": labels[int(index)], "confidence": float(value)}
             for value, index in zip(values.tolist(), indices.tolist())
         ],
-        "is_low_confidence": is_background or confidence < threshold,
+        "is_low_confidence": needs_better_photo,
+        "image_quality": quality,
+        "needs_better_photo": needs_better_photo,
         "model_version": f"{architecture}-lowres-{image_size}px",
         "inference_timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "image_path": str(path),
@@ -156,6 +200,10 @@ def main() -> None:
             _, disease = label_details(result["disease_label"])
             print(f"Plant: {result['crop']}")
             print(f"Disease: {disease}")
+        if result["needs_better_photo"]:
+            print("Action: Please take a better photo before relying on this result")
+            for issue in result["image_quality"]["issues"]:
+                print(f"  - {issue}")
         print(f"Confidence: {result['confidence']:.2%}")
         print(f"Low confidence: {result['is_low_confidence']}")
         print("Top predictions:")
