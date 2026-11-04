@@ -46,6 +46,28 @@ produces a GPU-trained `best.pt` checkpoint and measured metrics. It does not
 produce TFLite directly; convert the selected checkpoint through a Linux/WSL
 TensorFlow or ONNX conversion workflow after evaluation.
 
+## Test an image with the trained model
+
+After training, use the generated checkpoint to test one image:
+
+```powershell
+python ml\scripts\predict.py `
+  "C:\path\to\leaf.jpg" `
+  --model ml\models\plantleaf-withoutaug-mobilenetv3\best.pt
+```
+
+Or test every supported image in a folder:
+
+```powershell
+python ml\scripts\predict.py "C:\path\to\photos" --json
+```
+
+The program uses CUDA automatically when available, applies the same
+224 x 224 RGB ImageNet normalization used during training, and prints the
+predicted label, confidence, low-confidence flag, and top-five predictions.
+Use `--cpu` to force CPU inference. A low-confidence result is only a model
+signal and must not be presented as an expert-confirmed diagnosis.
+
 The trainer recursively reads image files and uses each image's immediate parent
 folder as its class label. This supports PlantDoc train/test class folders and
 PlantVillage's `raw/color/<class>` layout. It creates a stratified validation
