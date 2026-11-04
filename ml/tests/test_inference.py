@@ -8,6 +8,7 @@ import pytest
 
 from ml.src.inference import InferenceEngine
 from ml.src.preprocessing import ImageInputError, preprocess_image
+from ml.scripts.train import stratified_split
 
 
 def image_bytes(color=(20, 120, 40)) -> bytes:
@@ -56,3 +57,10 @@ def test_model_output_must_match_labels():
 
 def test_result_is_json_serializable():
     json.dumps(InferenceEngine().infer(image_bytes()))
+
+
+def test_training_split_keeps_each_class_in_both_sets():
+    records = [(f"image-{index}.jpg", label) for label in ("a", "b") for index in range(5)]
+    train, validation = stratified_split(records, validation_fraction=0.2, seed=42)
+    assert {label for _, label in train} == {"a", "b"}
+    assert {label for _, label in validation} == {"a", "b"}
