@@ -3,18 +3,31 @@
 from __future__ import annotations
 
 import argparse
+import math
 from datetime import datetime, timezone
 import json
 from pathlib import Path
 from uuid import uuid4
 
 import torch
+import numpy as np
 from PIL import Image, UnidentifiedImageError
 from torchvision import models, transforms
 
 IMAGE_EXTENSIONS = {".bmp", ".gif", ".jpeg", ".jpg", ".png", ".webp"}
 DEFAULT_MODEL = Path("ml/models/plantleaf-withoutaug-mobilenetv3/best.pt")
 DEFAULT_THRESHOLD = 0.60
+BACKGROUND_LABELS = {"Background_without_leaves"}
+
+
+def label_details(label: str) -> tuple[str, str]:
+    """Split PlantVillage-style labels into crop and disease text."""
+    if label in BACKGROUND_LABELS:
+        return "unknown", "no_leaf_detected"
+    if "___" in label:
+        crop, disease = label.split("___", 1)
+        return crop.replace("_", " "), disease.replace("_", " ")
+    return "unknown", label.replace("_", " ")
 
 
 def load_model(checkpoint_path: Path, device: torch.device):
@@ -23,18 +36,30 @@ def load_model(checkpoint_path: Path, device: torch.device):
         raise FileNotFoundError(f"checkpoint not found: {checkpoint_path}")
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
     labels = checkpoint.get("classes")
-    if not isinstance(labels, list) or not labels:
+    if (
+        not isinstance(labels, list)
+        or not labels
+        or not all(isinstance(label, str) and label for label in labels)
+    ):
         raise ValueError("checkpoint does not contain a valid class list")
     architecture = checkpoint.get("architecture", "MobileNetV3-Small")
     if architecture == "MobileNetV3-Large":
         model = models.mobilenet_v3_large(weights=None)
-    else:
+    elif architecture == "MobileNetV3-Small":
         model = models.mobilenet_v3_small(weights=None)
+    else:
+        raise ValueError(f"unsupported model architecture: {architecture}")
+    model_state = checkpoint.get("model_state")
+    if not isinstance(model_state, dict):
+        raise ValueError("checkpoint does not contain a valid model state")
     model.classifier[3] = torch.nn.Linear(model.classifier[3].in_features, len(labels))
-    model.load_state_dict(checkpoint["model_state"])
+    model.load_state_dict(model_state)
     model.to(device)
     model.eval()
-    return model, labels, int(checkpoint.get("image_size", 224)), architecture
+    image_size = checkpoint.get("image_size", 224)
+    if not isinstance(image_size, int) or image_size < 1:
+        raise ValueError("checkpoint contains an invalid image size")
+    return model, labels, image_size, architecture
 
 
 def image_paths(source: Path) -> list[Path]:
@@ -50,6 +75,43 @@ def image_paths(source: Path) -> list[Path]:
     raise FileNotFoundError(f"image path does not exist: {source}")
 
 
+def assess_image_quality(image: Image.Image) -> dict:
+    """Reject images that are too small, blurred, dark, bright, or flat."""
+    rgb = np.asarray(image.convert("RGB"), dtype=np.float32)
+    gray = rgb.mean(axis=2)
+    height, width = gray.shape
+    issues: list[str] = []
+    if min(width, height) < 96:
+        issues.append("image resolution is too low")
+    brightness = float(gray.mean())
+    if brightness < 35:
+        issues.append("image is too dark")
+    elif brightness > 235:
+        issues.append("image is overexposed")
+    contrast = float(gray.std())
+    if contrast < 12:
+        issues.append("image has very low contrast")
+    laplacian = (
+        -4 * gray
+        + np.roll(gray, 1, axis=0)
+        + np.roll(gray, -1, axis=0)
+        + np.roll(gray, 1, axis=1)
+        + np.roll(gray, -1, axis=1)
+    )
+    blur_score = float(laplacian[1:-1, 1:-1].var())
+    if blur_score < 8:
+        issues.append("image appears blurry")
+    return {
+        "width": width,
+        "height": height,
+        "brightness": round(brightness, 2),
+        "contrast": round(contrast, 2),
+        "blur_score": round(blur_score, 2),
+        "is_acceptable": not issues,
+        "issues": issues,
+    }
+
+
 def predict_image(
     model,
     labels,
@@ -62,28 +124,56 @@ def predict_image(
     image_size: int,
 ):
     """Predict one image and return the shared inference contract shape."""
+    if not labels:
+        raise ValueError("model has no labels")
+    if top_k < 1:
+        raise ValueError("top_k must be positive")
+    if not math.isfinite(threshold) or not 0.0 <= threshold <= 1.0:
+        raise ValueError("threshold must be between 0 and 1")
+    if image_size < 1:
+        raise ValueError("image_size must be positive")
     try:
         with Image.open(path) as image:
             image = image.convert("RGB")
+            quality = assess_image_quality(image)
             batch = transform(image).unsqueeze(0).to(device)
     except (OSError, UnidentifiedImageError) as exc:
         raise ValueError(f"cannot read image: {path}") from exc
 
     with torch.inference_mode():
-        probabilities = torch.softmax(model(batch), dim=1)[0]
+        logits = model(batch)
+        if logits.ndim != 2 or logits.shape != (1, len(labels)):
+            raise ValueError(
+                f"model output must have shape (1, {len(labels)}), got {tuple(logits.shape)}"
+            )
+        probabilities = torch.softmax(logits, dim=1)[0]
+    if not torch.isfinite(probabilities).all():
+        raise ValueError("model output contains non-finite scores")
     values, indices = torch.topk(probabilities, k=min(top_k, len(labels)))
     confidence = float(values[0].item())
+    predicted_label = labels[int(indices[0].item())]
+    crop, _ = label_details(predicted_label)
+    is_background = predicted_label in BACKGROUND_LABELS
+    needs_better_photo = bool(
+        quality["issues"] or is_background or confidence < threshold
+    )
     return {
         "prediction_id": str(uuid4()),
-        "crop": "unknown",
-        "disease_label": labels[int(indices[0].item())],
+        "crop": crop,
+        "disease_label": predicted_label,
         "confidence": confidence,
         "top_predictions": [
             {"label": labels[int(index)], "confidence": float(value)}
             for value, index in zip(values.tolist(), indices.tolist())
         ],
-        "is_low_confidence": confidence < threshold,
-        "model_version": f"{architecture}-lowres-{image_size}px",
+        "is_low_confidence": needs_better_photo,
+        "image_quality": quality,
+        "needs_better_photo": needs_better_photo,
+        "model_version": (
+            f"{architecture}-lowres-{image_size}px"
+            if image_size <= 160
+            else f"{architecture}-{image_size}px"
+        ),
         "inference_timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "image_path": str(path),
     }
@@ -99,14 +189,17 @@ def main() -> None:
     parser.add_argument("--json", action="store_true", help="print machine-readable JSON")
     args = parser.parse_args()
     if args.top_k < 1:
-        raise SystemExit("--top-k must be positive")
-    if not 0.0 <= args.threshold <= 1.0:
-        raise SystemExit("--threshold must be between 0 and 1")
-    paths = image_paths(args.image)
-    if not paths:
-        raise SystemExit("no supported images found (.jpg, .jpeg, .png, .bmp, .gif, .webp)")
-    device = torch.device("cpu" if args.cpu or not torch.cuda.is_available() else "cuda")
-    model, labels, image_size, architecture = load_model(args.model, device)
+        parser.error("--top-k must be positive")
+    if not math.isfinite(args.threshold) or not 0.0 <= args.threshold <= 1.0:
+        parser.error("--threshold must be between 0 and 1")
+    try:
+        paths = image_paths(args.image)
+        if not paths:
+            parser.error("no supported images found (.jpg, .jpeg, .png, .bmp, .gif, .webp)")
+        device = torch.device("cpu" if args.cpu or not torch.cuda.is_available() else "cuda")
+        model, labels, image_size, architecture = load_model(args.model, device)
+    except (FileNotFoundError, ValueError, OSError) as exc:
+        parser.error(str(exc))
     transform = transforms.Compose(
         [
             transforms.Resize((image_size, image_size)),
@@ -116,27 +209,39 @@ def main() -> None:
             ),
         ]
     )
-    results = [
-        predict_image(
-            model,
-            labels,
-            transform,
-            path,
-            device,
-            args.top_k,
-            args.threshold,
-            architecture,
-            image_size,
-        )
-        for path in paths
-    ]
+    try:
+        results = [
+            predict_image(
+                model,
+                labels,
+                transform,
+                path,
+                device,
+                args.top_k,
+                args.threshold,
+                architecture,
+                image_size,
+            )
+            for path in paths
+        ]
+    except ValueError as exc:
+        parser.error(str(exc))
     if args.json:
         print(json.dumps(results, indent=2))
         return
     print(f"Device: {torch.cuda.get_device_name(device) if device.type == 'cuda' else 'CPU'}")
     for result in results:
         print(f"\nImage: {result['image_path']}")
-        print(f"Prediction: {result['disease_label']}")
+        if result["disease_label"] in BACKGROUND_LABELS:
+            print("Result: No clear leaf detected; no disease diagnosis made")
+        else:
+            _, disease = label_details(result["disease_label"])
+            print(f"Plant: {result['crop']}")
+            print(f"Disease: {disease}")
+        if result["needs_better_photo"]:
+            print("Action: Please take a better photo before relying on this result")
+            for issue in result["image_quality"]["issues"]:
+                print(f"  - {issue}")
         print(f"Confidence: {result['confidence']:.2%}")
         print(f"Low confidence: {result['is_low_confidence']}")
         print("Top predictions:")
