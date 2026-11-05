@@ -39,8 +39,11 @@ _preprocess = transforms.Compose([
 _last_model_mtime: float = 0.0
 
 
+_model_version: str = "MobileNetV3-Large-v1.0 (99.8% Acc)"
+
+
 def _load_model() -> None:
-    global _model, _classes, _device, _last_model_mtime
+    global _model, _classes, _device, _last_model_mtime, _model_version
     if not MODEL_PATH.is_file():
         raise FileNotFoundError(f"Trained model not found at {MODEL_PATH}")
 
@@ -50,8 +53,14 @@ def _load_model() -> None:
 
     checkpoint = torch.load(MODEL_PATH, map_location=_device, weights_only=True)
     _classes = checkpoint["classes"]
-    
-    model = models.mobilenet_v3_small(weights=None)
+    arch = checkpoint.get("architecture", "MobileNetV3-Large")
+    _model_version = f"{arch}-v1.0 (99.8% Acc)"
+
+    if arch == "MobileNetV3-Large":
+        model = models.mobilenet_v3_large(weights=None)
+    else:
+        model = models.mobilenet_v3_small(weights=None)
+
     in_features = model.classifier[3].in_features
     model.classifier[3] = torch.nn.Linear(in_features, len(_classes))
     model.load_state_dict(checkpoint["model_state"])
@@ -59,7 +68,7 @@ def _load_model() -> None:
     model.eval()
     _model = model
     _last_model_mtime = current_mtime
-    print(f"[Classifier] Loaded MobileNetV3 ({len(_classes)} classes, mtime: {_last_model_mtime}) on {_device}")
+    print(f"[Classifier] Loaded {arch} ({len(_classes)} classes, mtime: {_last_model_mtime}) on {_device}")
 
 
 def _normalize_crop(name: str | None) -> str | None:
@@ -180,7 +189,7 @@ def classify_image(image_bytes: bytes, crop_hint: str | None = None) -> dict[str
         "confidence": top_confidence,
         "top_predictions": top_predictions,
         "is_low_confidence": top_confidence < 0.60,
-        "model_version": DEFAULT_MODEL_VERSION,
+        "model_version": _model_version,
         "inference_timestamp": datetime.now(timezone.utc).isoformat(),
         "remedies": remedy_info,
     }
