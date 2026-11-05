@@ -1,4 +1,5 @@
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -23,7 +24,13 @@ import io
 
 
 
-app = FastAPI(
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(lifespan=lifespan,
     title="AgroLens Backend API",
     summary="Backend services for AgroLens crop disease and pest detection research.",
     description="""
@@ -103,10 +110,6 @@ async def auth_validation_exception_handler(
         content={"detail": jsonable_encoder(errors)},
     )
 
-
-@app.on_event("startup")
-def startup_event():
-    init_db()
 
 
 # --------------------------------------------------
