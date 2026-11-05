@@ -1,0 +1,337 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for Telugu (`te`).
+class AppLocalizationsTe extends AppLocalizations {
+  AppLocalizationsTe([String locale = 'te']) : super(locale);
+
+  @override
+  String get appTitle => 'AgroLens';
+
+  @override
+  String get languageLabel => 'భాష';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
+  String get languageHindi => 'हिन्दी';
+
+  @override
+  String get languageTelugu => 'తెలుగు';
+
+  @override
+  String get languageTamil => 'தமிழ்';
+
+  @override
+  String get languageKannada => 'ಕನ್ನಡ';
+
+  @override
+  String get checkYourCrop => 'మంచి పంటకు ఇక్కడే ఆరంభం';
+
+  @override
+  String get scanIntroduction =>
+      'పంటలో కనిపించే సమస్యలను పరిశీలించడానికి ఆకు ఫోటో తీయండి.';
+
+  @override
+  String get plantNameLabel => 'మొక్క లేదా పంట';
+
+  @override
+  String get plantNameHint => 'ఏ మొక్క పేరు అయినా టైప్ చేయండి';
+
+  @override
+  String get plantNameRequired => 'ముందుగా మొక్క లేదా పంట పేరును నమోదు చేయండి.';
+
+  @override
+  String get supportedCropsTitle => 'త్వరగా ఎంచుకోండి';
+
+  @override
+  String get modelCoverageNotice =>
+      'ఏ మొక్క పేరు అయినా నమోదు చేయవచ్చు. ఈ డెమో ఫోటోను గుర్తించదు; అనుకరణ ఫలితాలను మాత్రమే చూపిస్తుంది. దీని నమూనా లేబుళ్లు టమాటా, బంగాళాదుంప, మొక్కజొన్న, క్యాప్సికం, వరికి మాత్రమే ఉన్నాయి.';
+
+  @override
+  String cropNotSupported(String crop) {
+    return 'ఈ డెమో $cropను విశ్లేషించలేకపోతుంది. ఎలాంటి నిర్ధారణ చేయలేదు. దీని నమూనా లేబుళ్లు టమాటా, బంగాళాదుంప, మొక్కజొన్న, క్యాప్సికం, వరికి మాత్రమే ఉన్నాయి.';
+  }
+
+  @override
+  String get demoModeNotice =>
+      'డెమో మోడ్: అంచనాలు అనుకరణ మాత్రమే, ఇవి నిర్ధారణ కాదు.';
+
+  @override
+  String get cropLabel => 'పంట';
+
+  @override
+  String get cropTomato => 'టమాటా';
+
+  @override
+  String get cropPotato => 'బంగాళాదుంప';
+
+  @override
+  String get cropCorn => 'మొక్కజొన్న';
+
+  @override
+  String get cropPepper => 'క్యాప్సికం';
+
+  @override
+  String get cropRice => 'వరి';
+
+  @override
+  String get choosePhoto => 'ఫోటోను ఎంచుకోండి';
+
+  @override
+  String get takePhoto => 'ఫోటో తీయండి';
+
+  @override
+  String get photoActionsHint =>
+      'దెబ్బతిన్న ఒక ఆకును స్పష్టమైన వెలుతురులో ఫోటో తీయండి.';
+
+  @override
+  String get photoSelected => 'ఫోటో ఎంచుకోబడింది';
+
+  @override
+  String get analyzePhoto => 'ఫోటోను విశ్లేషించండి';
+
+  @override
+  String get analyzing => 'విశ్లేషిస్తోంది...';
+
+  @override
+  String errorCouldNotOpenPhoto(String error) {
+    return 'ఫోటోను తెరవలేకపోయాము: $error';
+  }
+
+  @override
+  String errorCouldNotAnalyzePhoto(String error) {
+    return 'ఈ ఫోటోను విశ్లేషించలేకపోయాము: $error';
+  }
+
+  @override
+  String errorCouldNotSaveScan(String error) {
+    return 'అంచనా సిద్ధంగా ఉంది, కానీ స్కాన్‌ను ఈ పరికరంలో సేవ్ చేయలేకపోయాము: $error';
+  }
+
+  @override
+  String get predictionTitle => 'అంచనా';
+
+  @override
+  String resultSummary(String crop, String confidence) {
+    return '$crop · నమ్మక స్థాయి $confidence';
+  }
+
+  @override
+  String get lowConfidenceWarning =>
+      'నమ్మక స్థాయి తక్కువగా ఉంది. స్పష్టమైన ఫోటో తీసి వ్యవసాయ నిపుణుడితో ఫలితాన్ని నిర్ధారించండి.';
+
+  @override
+  String modelVersion(String version) {
+    return 'మోడల్: $version';
+  }
+
+  @override
+  String get locationTitle => 'పొలం స్థానం';
+
+  @override
+  String get locationPrivacyNotice =>
+      'ప్రతి స్కాన్‌కు స్థానం అవసరం. మీరు బటన్‌ను నొక్కినప్పుడే స్థానం అడుగుతాము; ఇది ఈ పరికరంలో స్కాన్‌తో సేవ్ అవుతుంది.';
+
+  @override
+  String get requiredLabel => 'అవసరం';
+
+  @override
+  String get readyLabel => 'సిద్ధం';
+
+  @override
+  String get addLocation => 'నా స్థానాన్ని ఉపయోగించండి';
+
+  @override
+  String get updateLocation => 'స్థానాన్ని నవీకరించండి';
+
+  @override
+  String get removeLocation => 'స్థానాన్ని తొలగించండి';
+
+  @override
+  String get gettingLocation => 'స్థానాన్ని పొందుతోంది...';
+
+  @override
+  String get locationRequired =>
+      'పంటను విశ్లేషించే ముందు పొలం స్థానాన్ని సెట్ చేయండి.';
+
+  @override
+  String locationCoordinates(String latitude, String longitude) {
+    return 'కోఆర్డినేట్లు: $latitude, $longitude';
+  }
+
+  @override
+  String get locationServiceDisabled =>
+      'స్థాన సేవలు ఆఫ్‌లో ఉన్నాయి. వాటిని ఆన్ చేసి మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get locationPermissionDenied =>
+      'స్థాన అనుమతి నిరాకరించబడింది. స్కాన్ కొనసాగించడానికి స్థాన అనుమతి ఇవ్వండి.';
+
+  @override
+  String get locationPermissionDeniedForever =>
+      'స్థాన అనుమతి బ్లాక్ చేయబడింది. స్కాన్ చేయడానికి బ్రౌజర్ లేదా పరికర సెట్టింగ్‌లలో అనుమతించండి.';
+
+  @override
+  String get locationPositionUnavailable =>
+      '60 సెకన్లలో GPS స్థానం లభించలేదు. సిగ్నల్‌ను తనిఖీ చేసి మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get locationSettingsUnavailable =>
+      'సెట్టింగ్‌లు తెరవలేకపోయాము. పరికర సెట్టింగ్‌లను తెరిచి మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get openSettings => 'సెట్టింగ్‌లను తెరవండి';
+
+  @override
+  String locationRequestFailed(String error) {
+    return 'మీ స్థానాన్ని పొందలేకపోయాము: $error';
+  }
+
+  @override
+  String get scanSavedLocally => 'స్కాన్ ఈ పరికరంలో సేవ్ చేయబడింది.';
+
+  @override
+  String get diseaseHealthy => 'ఆరోగ్యకరమైన మొక్క';
+
+  @override
+  String get diseaseBacterialSpot => 'బాక్టీరియా మచ్చ';
+
+  @override
+  String get diseaseEarlyBlight => 'ముందస్తు ఎండు తెగులు';
+
+  @override
+  String get diseaseLateBlight => 'ఆలస్యపు ఎండు తెగులు';
+
+  @override
+  String get diseaseLeafMold => 'ఆకు బూజు';
+
+  @override
+  String get diseaseSeptoriaLeafSpot => 'సెప్టోరియా ఆకు మచ్చ';
+
+  @override
+  String get diseaseSpiderMites => 'రెండు మచ్చల సాలీడు పురుగు';
+
+  @override
+  String get diseaseTargetSpot => 'లక్ష్యాకారపు మచ్చ';
+
+  @override
+  String get diseaseYellowLeafCurlVirus => 'పసుపు ఆకు ముడత వైరస్';
+
+  @override
+  String get diseaseMosaicVirus => 'మొజాయిక్ వైరస్';
+
+  @override
+  String get diseaseCommonRust => 'సాధారణ తుప్పు తెగులు';
+
+  @override
+  String get diseaseNorthernLeafBlight => 'ఉత్తర ఆకు ఎండు తెగులు';
+
+  @override
+  String get diseaseBrownSpot => 'గోధుమ మచ్చ';
+
+  @override
+  String get diseaseLeafBlast => 'ఆకు అగ్గి తెగులు';
+
+  @override
+  String get authWelcomeTitle => 'AgroLens‌కు స్వాగతం';
+
+  @override
+  String get authWelcomeSubtitle =>
+      'మీ పంటల సంరక్షణ కొనసాగించడానికి సైన్ ఇన్ చేయండి.';
+
+  @override
+  String get authIdentifier => 'ఈమెయిల్ లేదా వినియోగదారు పేరు';
+
+  @override
+  String get authPassword => 'పాస్‌వర్డ్';
+
+  @override
+  String get authConfirmPassword => 'పాస్‌వర్డ్‌ను నిర్ధారించండి';
+
+  @override
+  String get authEmail => 'ఈమెయిల్';
+
+  @override
+  String get authUsername => 'వినియోగదారు పేరు';
+
+  @override
+  String get authForgotPassword => 'పాస్‌వర్డ్ మర్చిపోయారా?';
+
+  @override
+  String get authLogin => 'లాగిన్';
+
+  @override
+  String get authSignUp => 'సైన్ అప్';
+
+  @override
+  String get authCreateAccount => 'మీ ఖాతాను సృష్టించండి';
+
+  @override
+  String get authNoAccount => 'AgroLens‌కు కొత్తవారా?';
+
+  @override
+  String get authHaveAccount => 'ఇప్పటికే ఖాతా ఉందా?';
+
+  @override
+  String get authSendResetLink => 'రీసెట్ లింక్ పంపండి';
+
+  @override
+  String get authResetPasswordTitle => 'పాస్‌వర్డ్ రీసెట్ చేయండి';
+
+  @override
+  String get authResetPasswordSubtitle =>
+      'ఈమెయిల్ నమోదు చేయండి. ఖాతా ఉంటే రీసెట్ లింక్ పంపుతాము.';
+
+  @override
+  String get authBackToLogin => 'లాగిన్‌కు తిరిగి వెళ్ళండి';
+
+  @override
+  String get authPasswordTooShort => 'కనీసం 8 అక్షరాలు ఉపయోగించండి.';
+
+  @override
+  String get authPasswordMismatch => 'పాస్‌వర్డ్‌లు సరిపోలలేదు.';
+
+  @override
+  String get authEmailInvalid => 'చెల్లుబాటు అయ్యే ఈమెయిల్ నమోదు చేయండి.';
+
+  @override
+  String get authUsernameRequired => 'వినియోగదారు పేరును నమోదు చేయండి.';
+
+  @override
+  String get authRequired => 'ఈ ఫీల్డ్ తప్పనిసరి.';
+
+  @override
+  String get authUnexpectedError => 'ఏదో తప్పు జరిగింది. మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get authResetSent =>
+      'ఈ ఈమెయిల్‌కు ఖాతా ఉంటే, పాస్‌వర్డ్ రీసెట్ లింక్ పంపబడుతుంది.';
+
+  @override
+  String get authLoggingIn => 'సైన్ ఇన్ అవుతోంది…';
+
+  @override
+  String get authCreatingAccount => 'ఖాతా సృష్టిస్తోంది…';
+
+  @override
+  String get authSendingReset => 'పంపుతోంది…';
+
+  @override
+  String get authShowPassword => 'పాస్‌వర్డ్ చూపించు';
+
+  @override
+  String get authHidePassword => 'పాస్‌వర్డ్ దాచు';
+
+  @override
+  String authLoggedInAs(String name) {
+    return '$nameగా సైన్ ఇన్ అయ్యారు';
+  }
+
+  @override
+  String get authLogOut => 'లాగ్ అవుట్';
+}

@@ -1,0 +1,170 @@
+{
+  "@@locale": "en",
+  "appTitle": "AgroLens",
+  "languageLabel": "Language",
+  "languageEnglish": "English",
+  "languageHindi": "हिन्दी",
+  "languageTelugu": "తెలుగు",
+  "languageTamil": "தமிழ்",
+  "languageKannada": "ಕನ್ನಡ",
+  "checkYourCrop": "A healthier harvest starts here",
+  "scanIntroduction": "Photograph a leaf to check for visible crop health issues.",
+  "plantNameLabel": "Plant or crop",
+  "plantNameHint": "Type any plant name",
+  "plantNameRequired": "Enter the plant or crop name first.",
+  "supportedCropsTitle": "Quick select",
+  "modelCoverageNotice": "Any plant name can be entered. This demo uses simulated results, not image recognition. Its placeholder labels cover tomato, potato, corn, bell pepper, and rice only.",
+  "cropNotSupported": "The demo cannot analyze {crop} yet. No diagnosis was made. Its placeholder labels cover tomato, potato, corn, bell pepper, and rice only.",
+  "@cropNotSupported": {
+    "placeholders": {
+      "crop": {
+        "type": "String"
+      }
+    }
+  },
+  "demoModeNotice": "Demo mode: predictions are simulated and are not a diagnosis.",
+  "cropLabel": "Crop",
+  "cropTomato": "Tomato",
+  "cropPotato": "Potato",
+  "cropCorn": "Corn",
+  "cropPepper": "Bell pepper",
+  "cropRice": "Rice",
+  "choosePhoto": "Choose a photo",
+  "takePhoto": "Take a photo",
+  "photoActionsHint": "Use a clear, well-lit photo of one affected leaf.",
+  "photoSelected": "Photo selected",
+  "analyzePhoto": "Analyze photo",
+  "analyzing": "Analyzing...",
+  "errorCouldNotOpenPhoto": "Could not open the image: {error}",
+  "@errorCouldNotOpenPhoto": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorCouldNotAnalyzePhoto": "Could not analyze this image: {error}",
+  "@errorCouldNotAnalyzePhoto": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorCouldNotSaveScan": "The prediction is ready, but the scan could not be saved on this device: {error}",
+  "@errorCouldNotSaveScan": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "predictionTitle": "Prediction",
+  "resultSummary": "{crop} · {confidence} confidence",
+  "@resultSummary": {
+    "placeholders": {
+      "crop": {
+        "type": "String"
+      },
+      "confidence": {
+        "type": "String"
+      }
+    }
+  },
+  "lowConfidenceWarning": "Low confidence. Try a clearer photo and confirm the result with an agricultural expert.",
+  "modelVersion": "Model: {version}",
+  "@modelVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "locationTitle": "Farm location",
+  "locationPrivacyNotice": "Required for every scan. Your location is only requested when you tap the button and is saved with the scan on this device.",
+  "requiredLabel": "Required",
+  "readyLabel": "Ready",
+  "addLocation": "Use my location",
+  "updateLocation": "Update location",
+  "removeLocation": "Remove location",
+  "gettingLocation": "Getting location...",
+  "locationRequired": "Set your farm location before analyzing a crop.",
+  "locationCoordinates": "Coordinates: {latitude}, {longitude}",
+  "@locationCoordinates": {
+    "placeholders": {
+      "latitude": {
+        "type": "String"
+      },
+      "longitude": {
+        "type": "String"
+      }
+    }
+  },
+  "locationServiceDisabled": "Location services are turned off. Turn them on and try again.",
+  "locationPermissionDenied": "Location permission was denied. Allow location access to continue with a scan.",
+  "locationPermissionDeniedForever": "Location permission is blocked. Enable it in your browser or device settings to scan.",
+  "locationPositionUnavailable": "Could not get a GPS fix within 60 seconds. Check your signal and try again.",
+  "locationSettingsUnavailable": "Could not open settings. Open your device settings manually and try again.",
+  "openSettings": "Open settings",
+  "locationRequestFailed": "Could not get your location: {error}",
+  "@locationRequestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scanSavedLocally": "Scan saved on this device.",
+  "diseaseHealthy": "Healthy plant",
+  "diseaseBacterialSpot": "Bacterial spot",
+  "diseaseEarlyBlight": "Early blight",
+  "diseaseLateBlight": "Late blight",
+  "diseaseLeafMold": "Leaf mold",
+  "diseaseSeptoriaLeafSpot": "Septoria leaf spot",
+  "diseaseSpiderMites": "Two-spotted spider mite",
+  "diseaseTargetSpot": "Target spot",
+  "diseaseYellowLeafCurlVirus": "Yellow leaf curl virus",
+  "diseaseMosaicVirus": "Mosaic virus",
+  "diseaseCommonRust": "Common rust",
+  "diseaseNorthernLeafBlight": "Northern leaf blight",
+  "diseaseBrownSpot": "Brown spot",
+  "diseaseLeafBlast": "Leaf blast",
+  "authWelcomeTitle": "Welcome to AgroLens",
+  "authWelcomeSubtitle": "Sign in to continue caring for your crops.",
+  "authIdentifier": "Email or username",
+  "authPassword": "Password",
+  "authConfirmPassword": "Confirm password",
+  "authEmail": "Email",
+  "authUsername": "Username",
+  "authForgotPassword": "Forgot password?",
+  "authLogin": "Log in",
+  "authSignUp": "Sign up",
+  "authCreateAccount": "Create your account",
+  "authNoAccount": "New to AgroLens?",
+  "authHaveAccount": "Already have an account?",
+  "authSendResetLink": "Send reset link",
+  "authResetPasswordTitle": "Reset your password",
+  "authResetPasswordSubtitle": "Enter your email and we’ll send a reset link if an account matches.",
+  "authBackToLogin": "Back to log in",
+  "authPasswordTooShort": "Use at least 8 characters.",
+  "authPasswordMismatch": "Passwords do not match.",
+  "authEmailInvalid": "Enter a valid email address.",
+  "authUsernameRequired": "Enter a username.",
+  "authRequired": "This field is required.",
+  "authUnexpectedError": "Something went wrong. Please try again.",
+  "authResetSent": "If an account matches that email, a password reset link is on its way.",
+  "authLoggingIn": "Signing in…",
+  "authCreatingAccount": "Creating account…",
+  "authSendingReset": "Sending…",
+  "authShowPassword": "Show password",
+  "authHidePassword": "Hide password",
+  "authLoggedInAs": "Signed in as {name}",
+  "@authLoggedInAs": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "authLogOut": "Log out"
+}
