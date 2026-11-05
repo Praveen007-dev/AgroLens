@@ -5,7 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from backend.app.config import get_cors_origins
+from backend.app.config import get_cors_origins, get_cors_origin_regex
 from backend.app.database import init_db, get_connection
 from backend.app.routers.mandi import router as mandi_router
 from backend.app.routers.auth import router as auth_router
@@ -80,6 +80,7 @@ app.include_router(auth_router, prefix="/api")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),
+    allow_origin_regex=get_cors_origin_regex(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -321,9 +322,13 @@ def get_scans(
                 s.model_version,
                 s.verification_status,
                 p.disease_label,
-                p.confidence
+                p.confidence,
+                om.latitude,
+                om.longitude,
+                om.location_consent
             FROM scan_records s
             JOIN ai_predictions p ON s.scan_id = p.scan_id
+            LEFT JOIN optional_metadata om ON s.scan_id = om.scan_id
         """ + where_clause + """
             ORDER BY s.scan_timestamp DESC
             LIMIT ? OFFSET ?

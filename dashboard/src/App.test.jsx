@@ -3,16 +3,32 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import App from './App';
+import { mockScans } from './mock/mockData';
 
 describe('AgroLens Research Dashboard Tests', () => {
   beforeEach(() => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        scans: mockScans.map((scan) => ({
+          scan_id: scan.scan_id,
+          scan_timestamp: scan.timestamp,
+          crop: scan.crop,
+          disease_label: scan.predicted_disease,
+          confidence: scan.confidence,
+          verification_status: scan.verification_status,
+          latitude: scan.location?.lat ?? null,
+          longitude: scan.location?.lon ?? null,
+          location_consent: Boolean(scan.location),
+        })),
+      }),
+    });
     render(<App />);
   });
 
-  it('renders research disclaimer and mock status without institutional claims', () => {
-    expect(screen.getByText(/AgroLens Prototype:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Not connected to IIHR or government agencies/i)).toBeInTheDocument();
-    expect(screen.getByText(/DEMONSTRATION MOCK DATA ACTIVE/i)).toBeInTheDocument();
+  it('renders the backend-connected research dashboard', () => {
+    expect(screen.getByText(/AgroLens:/i)).toBeInTheDocument();
+    expect(screen.getByText(/LIVE API DATA|LOADING BACKEND DATA/i)).toBeInTheDocument();
   });
 
   it('separates farmer confirmation and expert verification correctly in aggregate metrics', () => {
@@ -64,13 +80,13 @@ describe('AgroLens Research Dashboard Tests', () => {
 
     // Open scan_101 (has location)
     await user.click(viewButtons[0]);
-    expect(screen.getByText('14.62, 74.83')).toBeInTheDocument();
+    expect(screen.getAllByText(/14\.62, 74\.83/).length).toBeGreaterThan(0);
 
     // Close modal
     await user.click(screen.getByRole('button', { name: /Close/i }));
 
     // Open scan_102 (location is null)
     await user.click(viewButtons[1]);
-    expect(screen.getByText('Not provided')).toBeInTheDocument();
+    expect(screen.getAllByText('Not provided').length).toBeGreaterThan(0);
   });
 });

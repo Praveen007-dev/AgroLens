@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import './App.css';
+import { createScan, exportScans, fetchScans } from './api';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, CartesianGrid, LineChart, Line, Legend
@@ -316,12 +317,34 @@ const initialScans = [
 export default function App() {
   const [scans, setScans] = useState(initialScans);
   const [selectedScan, setSelectedScan] = useState(null);
+  const [isLoadingScans, setIsLoadingScans] = useState(true);
+  const [apiError, setApiError] = useState(null);
 
   // Scanner state
   const [previewUrl, setPreviewUrl] = useState(null);
   const [scanCrop, setScanCrop] = useState('Tomato');
   const [isScanning, setIsScanning] = useState(false);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchScans()
+      .then((records) => {
+        if (active) {
+          setScans(records);
+          setApiError(null);
+        }
+      })
+      .catch((error) => {
+        if (active) setApiError(error.message);
+      })
+      .finally(() => {
+        if (active) setIsLoadingScans(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Farmer Intake Form State
   const [farmerName, setFarmerName] = useState('');
@@ -367,7 +390,7 @@ export default function App() {
     );
   };
 
-  const handleStartScan = () => {
+  const handleStartScan = async () => {
     if (!previewUrl) {
       alert("Please choose or capture a leaf photo first.");
       return;
@@ -375,28 +398,39 @@ export default function App() {
 
     setIsScanning(true);
 
-    setTimeout(() => {
+    try {
       const latVal = parseFloat(customLat);
       const lonVal = parseFloat(customLon);
+      const location = (!isNaN(latVal) && !isNaN(lonVal))
+        ? { lat: latVal, lon: lonVal }
+        : null;
+      const farmer = {
+        name: farmerName.trim() || "Anonymous Farmer",
+        phone: farmerPhone.trim() || "Not provided",
+        district: farmerDistrict.trim() || "Unspecified",
+        state: farmerState.trim() || "Karnataka",
+        country: farmerCountry.trim() || "India"
+      };
 
       const newRecord = {
-        scan_id: `scan_${Date.now().toString().slice(-4)}`,
+        scan_id: `dashboard-${Date.now()}`,
         timestamp: new Date().toISOString(),
         crop: scanCrop,
         predicted_disease: "Analysis Pending",
         confidence: 0.75,
         farmer_feedback: "unreviewed",
         verification_status: "pending",
-        location: (!isNaN(latVal) && !isNaN(lonVal)) ? { lat: latVal, lon: lonVal } : null,
-        farmer: {
-          name: farmerName.trim() || "Anonymous Farmer",
-          phone: farmerPhone.trim() || "Not provided",
-          district: farmerDistrict.trim() || "Unspecified",
-          state: farmerState.trim() || "Karnataka",
-          country: farmerCountry.trim() || "India"
-        }
+        location,
+        farmer
       };
 
+      const response = await createScan({
+        crop: scanCrop,
+        timestamp: newRecord.timestamp,
+        location,
+        farmer,
+      });
+      newRecord.scan_id = response.scan_id;
       setScans(prev => [newRecord, ...prev]);
       setIsScanning(false);
       setPreviewUrl(null);
@@ -404,8 +438,14 @@ export default function App() {
       setFarmerPhone('');
       setFarmerDistrict('');
       if (fileInputRef.current) fileInputRef.current.value = '';
+      setApiError(null);
       alert(`Scan ${newRecord.scan_id} recorded for ${newRecord.farmer.name}!`);
-    }, 1200);
+    } catch (error) {
+      setApiError(error.message);
+      alert(`Unable to record scan: ${error.message}`);
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   const filteredScans = useMemo(() => {
@@ -456,10 +496,17 @@ export default function App() {
       {/* Prototype Disclaimer Banner */}
       <div className="banner">
         <div>
-          <strong>AgroLens Prototype:</strong> Research analytics dashboard. Synthesized comparison models for educational evaluation.
+          <strong>AgroLens:</strong> Research analytics dashboard connected to the FastAPI backend.
         </div>
-        <span className="banner-badge">DEMONSTRATION MOCK DATA ACTIVE</span>
+        <span className="banner-badge">
+          {isLoadingScans ? 'LOADING BACKEND DATA' : 'LIVE API DATA'}
+        </span>
       </div>
+      {apiError && (
+        <div role="alert" style={{ color: '#fecaca', marginBottom: 16 }}>
+          Backend connection error: {apiError}
+        </div>
+      )}
 
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
@@ -467,8 +514,8 @@ export default function App() {
           <p style={{ color: '#94a3b8', fontSize: 14 }}>Field Scan Telemetry & Institutional Baseline Analytics</p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button className="export-btn" onClick={() => alert("Backend CSV export will connect to /api/export/scans?format=csv")}>Export CSV</button>
-          <button className="export-btn" onClick={() => alert("Backend JSON export will connect to /api/export/scans?format=json")}>Export JSON</button>
+          <button className="export-btn" onClick={() => exportScans('csv')}>Export CSV</button>
+          <button className="export-btn" onClick={() => exportScans('json')}>Export JSON</button>
         </div>
       </header>
 

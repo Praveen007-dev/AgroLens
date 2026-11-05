@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// AgroLens Mobile Configuration
 /// Provides centralized configuration parameters for AI inference,
 /// backend endpoints, privacy thresholds, and feature flags.
@@ -15,8 +17,14 @@ class AppConfig {
   static const int modelInputSize = 224; // 224x224 RGB
 
   // Backend Integration (Member 3 - FastAPI)
-  // Default points to localhost (use 10.0.2.2 for Android emulator)
-  static String backendBaseUrl = 'http://10.0.2.2:8000/api/v1';
+  // Override AGROLENS_API_HOST for a physical device on the same LAN.
+  static String get backendBaseUrl {
+    const configuredHost = String.fromEnvironment('AGROLENS_API_HOST');
+    final host = configuredHost.isNotEmpty
+        ? configuredHost
+        : (kIsWeb ? Uri.base.host : '10.0.2.2');
+    return 'http://$host:8000/api/v1';
+  }
   static const Duration apiTimeout = Duration(seconds: 10);
 
   // Runtime Mode Flags
@@ -24,7 +32,7 @@ class AppConfig {
       true; // Set to false when Member 1's TFLite model is dropped in
   // Agriculture feature responses remain development samples until the
   // corresponding backend endpoints are implemented.
-  static bool useMockApi = true;
+  static bool useMockApi = false;
   static bool allowOfflineQueue =
       true; // Stores scans locally if backend is unavailable
 

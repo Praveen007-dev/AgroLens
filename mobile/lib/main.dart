@@ -9,10 +9,14 @@ import 'models/inference_result.dart';
 import 'models/scan_record.dart';
 import 'features/agriculture_pages.dart';
 import 'services/agriculture_data_service.dart';
+import 'services/api_service.dart';
 import 'services/auth_service.dart';
 import 'services/http_agriculture_data_service.dart';
+import 'services/http_auth_service.dart';
+import 'services/http_api_service.dart';
 import 'services/inference_service.dart';
 import 'services/local_auth_service.dart';
+import 'services/mock_api_service.dart';
 import 'services/location_service.dart';
 import 'services/mock_agriculture_data_service.dart';
 import 'services/mock_inference_service.dart';
@@ -37,6 +41,10 @@ AgricultureDataService _createAgricultureDataService() => AppConfig.useMockApi
     ? MockAgricultureDataService()
     : HttpAgricultureDataService();
 
+ScanApiService _createScanApiService() => AppConfig.useMockApi
+    ? MockApiServiceImpl()
+    : HttpScanApiService();
+
 class AgroLensApp extends StatefulWidget {
   const AgroLensApp({
     super.key,
@@ -45,6 +53,7 @@ class AgroLensApp extends StatefulWidget {
     this.storageService,
     this.agricultureDataService,
     this.authService,
+    this.scanApiService,
     this.initialLocale = const Locale('en'),
   });
 
@@ -53,6 +62,7 @@ class AgroLensApp extends StatefulWidget {
   final StorageService? storageService;
   final AgricultureDataService? agricultureDataService;
   final AuthService? authService;
+  final ScanApiService? scanApiService;
   final Locale initialLocale;
 
   @override
@@ -74,7 +84,8 @@ class _AgroLensAppState extends State<AgroLensApp> {
     _ownsAgricultureService = widget.agricultureDataService == null;
     _agricultureService =
         widget.agricultureDataService ?? _createAgricultureDataService();
-    _authService = widget.authService ?? LocalAuthService();
+    _authService = widget.authService ??
+        (AppConfig.useMockApi ? LocalAuthService() : HttpAuthService());
     _restoreSession();
   }
 
@@ -155,6 +166,7 @@ class _AgroLensAppState extends State<AgroLensApp> {
                           : TFLiteInferenceService()),
                   locationService: widget.locationService ?? LocationService(),
                   storageService: widget.storageService,
+                  scanApiService: widget.scanApiService ?? _createScanApiService(),
                   session: _session!,
                   onSignOut: _signOut,
                 ),
@@ -173,6 +185,7 @@ class ScanPage extends StatefulWidget {
     required this.session,
     required this.onSignOut,
     this.storageService,
+    this.scanApiService,
   });
 
   final Locale locale;
@@ -183,6 +196,7 @@ class ScanPage extends StatefulWidget {
   final AuthSession session;
   final Future<void> Function() onSignOut;
   final StorageService? storageService;
+  final ScanApiService? scanApiService;
 
   @override
   State<ScanPage> createState() => _ScanPageState();
@@ -368,9 +382,24 @@ class _ScanPageState extends State<ScanPage> {
       });
 
       try {
-        await (await _getStorage()).saveScan(record);
+        final storage = await _getStorage();
+        await storage.saveScan(record);
         if (!mounted) return;
         setState(() => _scanSavedLocally = true);
+
+        final api = widget.scanApiService;
+        if (api != null) {
+          final synced = await api.submitScan(record);
+          if (synced) {
+            final syncedRecord = record.copyWith(syncStatus: SyncStatus.synced);
+            await storage.saveScan(syncedRecord);
+            if (!mounted) return;
+            setState(() {
+              _scanRecord = syncedRecord;
+              _scanSavedLocally = true;
+            });
+          }
+        }
       } catch (error) {
         if (!mounted) return;
         setState(

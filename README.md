@@ -42,6 +42,46 @@ The collected data will simulate the type of structured agricultural information
 
 Initial repository setup.
 
+## Run locally
+
+Start the backend from the repository root:
+
+```powershell
+python -m uvicorn backend.app.main:app --reload
+```
+
+Start the dashboard in a second terminal:
+
+```powershell
+Set-Location dashboard
+npm install
+npm run dev -- --host 0.0.0.0
+```
+
+Start the Flutter web app in a third terminal. If Flutter is installed at a
+different location, replace the executable path:
+
+```powershell
+Set-Location mobile
+& C:\Users\wwwpr\AgroLens\flutter\bin\flutter.bat pub get
+& C:\Users\wwwpr\AgroLens\flutter\bin\flutter.bat run -d web-server --web-hostname 0.0.0.0 --web-port 5000
+```
+
+The local URLs are:
+
+- Backend API: `http://127.0.0.1:8000`
+- Swagger UI: `http://127.0.0.1:8000/docs`
+- Research dashboard: `http://127.0.0.1:5173`
+- Flutter Web: `http://127.0.0.1:5000`
+
+The Flutter client uses the backend for authentication, agriculture data, and
+scan submission. Android emulators use `10.0.2.2`; Flutter Web derives the
+backend host from the browser URL. For a physical Android device, pass
+`--dart-define=AGROLENS_API_HOST=YOUR_LAN_IP`.
+
+From another system on the same Wi-Fi, replace `127.0.0.1` with this computer's
+LAN address, currently `172.17.26.24`.
+
 ## Disclaimer
 
 AgroLens is a prototype developed for demonstration and research purposes. It is not connected to IIHR or any government agricultural department unless a formal integration is established.

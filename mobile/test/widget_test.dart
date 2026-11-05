@@ -5,6 +5,7 @@ import 'package:agrolens/models/inference_result.dart';
 import 'package:agrolens/models/scan_record.dart';
 import 'package:agrolens/services/location_service.dart';
 import 'package:agrolens/services/auth_service.dart';
+import 'package:agrolens/services/local_auth_service.dart';
 import 'package:agrolens/services/mock_inference_service.dart';
 import 'package:agrolens/services/storage_service.dart';
 import 'package:flutter/material.dart'
@@ -290,7 +291,9 @@ void main() {
   testWidgets('local sign-up, login, and logout work through the app',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
-    await tester.pumpWidget(const AgroLensApp());
+    await tester.pumpWidget(
+      AgroLensApp(authService: LocalAuthService()),
+    );
     await tester.pumpAndSettle();
 
     final signUpLink = find.textContaining('New to AgroLens?');

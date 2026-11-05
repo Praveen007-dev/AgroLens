@@ -37,7 +37,9 @@ class HttpScanApiService implements ScanApiService {
   Future<bool> submitScan(ScanRecord record) async {
     try {
       final uri = Uri.parse('$baseUrl/scans');
-      final payload = jsonEncode(record.toJson());
+      final recordJson = record.toJson();
+      if (record.location == null) recordJson.remove('location');
+      final payload = jsonEncode(recordJson);
 
       final response = await _client
           .post(uri, headers: _headers, body: payload)
@@ -57,7 +59,11 @@ class HttpScanApiService implements ScanApiService {
   Future<int> submitBatch(List<ScanRecord> records) async {
     try {
       final uri = Uri.parse('$baseUrl/scans/batch');
-      final payload = jsonEncode(records.map((r) => r.toJson()).toList());
+      final payload = jsonEncode(records.map((record) {
+        final recordJson = record.toJson();
+        if (record.location == null) recordJson.remove('location');
+        return recordJson;
+      }).toList());
 
       final response = await _client
           .post(uri, headers: _headers, body: payload)

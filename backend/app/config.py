@@ -30,3 +30,10 @@ def get_cors_origins() -> list[str]:
             "http://127.0.0.1:7357",
         ]
     return [origin.strip() for origin in configured.split(",") if origin.strip()]
+
+
+def get_cors_origin_regex() -> str:
+    return (
+        r"^https?://(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|"
+        r"172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+|192\.168\.\d+\.\d+)(:\d+)?$"
+    )

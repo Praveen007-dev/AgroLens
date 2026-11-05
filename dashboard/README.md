@@ -26,11 +26,20 @@ Web frontend for agricultural researchers to monitor crop disease telemetry, far
 - **Disease & Pest Analytics:** Visual distribution charts using Recharts (disease prevalence and crop breakdown).
 - **Multi-parameter Filtering:** Instant client-side filtering by crop type, disease label, verification status, and confidence range slider.
 - **Scan Telemetry Table & Inspector:** Detailed modal viewer handling optional telemetry (gracefully handles missing GPS coordinates).
-- **Backend & Mock Fallback:** Automatic demonstration mode with contract-compliant mock data when backend is unreachable.
+- **Backend API:** Loads and records scan data through the FastAPI `/api/scans` endpoints and supports JSON/CSV exports.
 
 ## Getting Started
 
 ### Installation
-```bash
+```
+
+Start the backend from the repository root before opening the dashboard:
+
+```powershell
+python -m uvicorn backend.app.main:app --reload
+```
+
+The dashboard uses `http://127.0.0.1:8000` by default. Set
+`VITE_API_BASE_URL` when the backend runs at another origin.bash
 cd dashboard
 npm install

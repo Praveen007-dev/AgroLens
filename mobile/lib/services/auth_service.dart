@@ -2,10 +2,12 @@ class AuthSession {
   const AuthSession({
     required this.email,
     this.username,
+    this.accessToken,
   });
 
   final String email;
   final String? username;
+  final String? accessToken;
 
   String get displayName =>
       username?.trim().isNotEmpty == true ? username! : email;
