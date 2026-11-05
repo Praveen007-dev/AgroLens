@@ -1,7 +1,10 @@
 from datetime import date, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Body, HTTPException, Query
+import base64
+from typing import Any
+from fastapi import Request, APIRouter, Body, File, HTTPException, Query, UploadFile
+from backend.app.services.classifier import classify_image
 
 from backend.app.routers.auth import router as auth_router
 from backend.app.schemas.mobile import (
@@ -20,6 +23,39 @@ router.include_router(auth_router)
 @router.get("/health", tags=["System"])
 def mobile_health():
     return {"status": "healthy", "service": "AgroLens Backend"}
+
+
+@router.post("/predict")
+async def predict_crop_disease(request: Request):
+    content_type = request.headers.get("content-type", "")
+    crop_hint = None
+    image_bytes = None
+
+    if "multipart/form-data" in content_type:
+        form = await request.form()
+        upload = form.get("file")
+        if upload and hasattr(upload, "read"):
+            image_bytes = await upload.read()
+        crop_hint = form.get("crop_hint")
+    else:
+        try:
+            payload = await request.json()
+        except Exception:
+            payload = {}
+        if "image_base64" in payload:
+            b64_data = payload["image_base64"]
+            if "," in b64_data:
+                b64_data = b64_data.split(",", 1)[1]
+            image_bytes = base64.b64decode(b64_data)
+            crop_hint = payload.get("crop_hint")
+
+    if not image_bytes:
+        raise HTTPException(status_code=400, detail="No image provided for prediction.")
+
+    try:
+        return classify_image(image_bytes, crop_hint=crop_hint)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Inference error: {e}")
 
 
 def _save_mobile_scans(scans: list[MobileScanCreate]) -> int:

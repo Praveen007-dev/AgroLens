@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:math';
 import '../config/app_config.dart';
 import '../models/inference_result.dart';
@@ -122,6 +123,7 @@ class MockInferenceService implements InferenceService {
   Future<InferenceResult> runInference({
     required String imagePath,
     String? cropHint,
+    Uint8List? imageBytes,
   }) async {
     if (!_isLoaded) {
       await initialize();

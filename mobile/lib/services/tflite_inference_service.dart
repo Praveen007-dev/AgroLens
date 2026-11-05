@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/services.dart';
@@ -55,6 +56,7 @@ class TFLiteInferenceService implements InferenceService {
   Future<InferenceResult> runInference({
     required String imagePath,
     String? cropHint,
+    Uint8List? imageBytes,
   }) async {
     if (!_isLoaded) {
       await initialize();

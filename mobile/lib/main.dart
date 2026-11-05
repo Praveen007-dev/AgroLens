@@ -22,6 +22,8 @@ import 'services/mock_agriculture_data_service.dart';
 import 'services/mock_inference_service.dart';
 import 'services/storage_service.dart';
 import 'services/tflite_inference_service.dart';
+import 'services/backend_inference_service.dart';
+import 'services/remedy_service.dart';
 
 const _supportedLocales = <Locale>[
   Locale('en'),
@@ -161,9 +163,7 @@ class _AgroLensAppState extends State<AgroLensApp> {
                   onLocaleChanged: (locale) => setState(() => _locale = locale),
                   agricultureDataService: _agricultureService,
                   inferenceService: widget.inferenceService ??
-                      (AppConfig.useMockInference
-                          ? MockInferenceService()
-                          : TFLiteInferenceService()),
+                      BackendInferenceService(),
                   locationService: widget.locationService ?? LocationService(),
                   storageService: widget.storageService,
                   scanApiService: widget.scanApiService ?? _createScanApiService(),
@@ -361,9 +361,11 @@ class _ScanPageState extends State<ScanPage> {
     });
 
     try {
+      final imageBytes = await image.readAsBytes();
       final result = await widget.inferenceService.runInference(
         imagePath: image.path,
         cropHint: crop,
+        imageBytes: imageBytes,
       );
       if (!mounted) return;
 
@@ -653,6 +655,8 @@ class _ScanPageState extends State<ScanPage> {
                   location: _scanRecord?.location,
                   isSavedLocally: _scanSavedLocally,
                 ),
+                const SizedBox(height: 16),
+                _RemedyCard(result: result),
               ],
             ],
           ),
@@ -1138,4 +1142,233 @@ String _localizedDiseaseName(AppLocalizations l10n, String label) {
     'leafblast' => l10n.diseaseLeafBlast,
     _ => label.replaceAll('_', ' '),
   };
+}
+
+
+class _RemedyCard extends StatelessWidget {
+  const _RemedyCard({required this.result});
+
+  final InferenceResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    if (result.diseaseLabel == 'Background_without_leaves' ||
+        result.crop.toLowerCase().contains('non-plant')) {
+      return Card(
+        color: const Color(0xFFFFF3CD),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFFFFEEBA)),
+        ),
+        child: const Padding(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.no_photography_outlined, color: Color(0xFF856404), size: 28),
+                  SizedBox(width: 10),
+                  Text(
+                    'No Plant Leaf Detected',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF856404),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10),
+              Text(
+                'The uploaded photograph appears to be a vehicle, object, or non-plant background. AgroLens requires a clear, well-lit photo of an agricultural crop leaf to diagnose diseases.',
+                style: TextStyle(color: Color(0xFF856404), height: 1.4),
+              ),
+              SizedBox(height: 12),
+              Text(
+                'Recommendation: Please point the camera directly at a plant leaf (such as Tomato, Potato, Corn, Pepper) and retake the photo.',
+                style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF856404)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final remedy = RemedyService.getRemedy(result.diseaseLabel, crop: result.crop);
+    final isHealthy = remedy.isHealthy;
+
+    return Card(
+      color: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: Color(0xFFE3E9DF)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    isHealthy ? 'Plant Health Status' : 'Treatment & Agronomic Remedies',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF1B4D3E),
+                        ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isHealthy ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Severity: ${remedy.severity}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: isHealthy ? const Color(0xFF2E7D32) : const Color(0xFFE65100),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              remedy.description,
+              style: const TextStyle(fontSize: 14, height: 1.4, color: Color(0xFF333333)),
+            ),
+            if (remedy.culturalPractices.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Row(
+                children: [
+                  Icon(Icons.agriculture_outlined, size: 20, color: Color(0xFF2D6A4F)),
+                  SizedBox(width: 8),
+                  Text(
+                    'Cultural Practices',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              ...remedy.culturalPractices.map(
+                (p) => Padding(
+                  padding: const EdgeInsets.only(left: 8, bottom: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Expanded(child: Text(p, style: const TextStyle(fontSize: 13, height: 1.3))),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            if (remedy.biologicalControls.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              const Row(
+                children: [
+                  Icon(Icons.nature_outlined, size: 20, color: Color(0xFF2D6A4F)),
+                  SizedBox(width: 8),
+                  Text(
+                    'Biological Controls (Organic)',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              ...remedy.biologicalControls.map(
+                (b) => Padding(
+                  padding: const EdgeInsets.only(left: 8, bottom: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Expanded(child: Text(b, style: const TextStyle(fontSize: 13, height: 1.3))),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            if (remedy.chemicalGuidelines.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              const Row(
+                children: [
+                  Icon(Icons.science_outlined, size: 20, color: Color(0xFFD9534F)),
+                  SizedBox(width: 8),
+                  Text(
+                    'Chemical Treatments (Safe Use)',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: Color(0xFFC0392B),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              ...remedy.chemicalGuidelines.map(
+                (c) => Padding(
+                  padding: const EdgeInsets.only(left: 8, bottom: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Expanded(child: Text(c, style: const TextStyle(fontSize: 13, height: 1.3))),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            if (remedy.nextSteps.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              const Row(
+                children: [
+                  Icon(Icons.check_circle_outline, size: 20, color: Color(0xFF1B4D3E)),
+                  SizedBox(width: 8),
+                  Text(
+                    'Immediate Next Steps',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              ...remedy.nextSteps.map(
+                (step) => Padding(
+                  padding: const EdgeInsets.only(left: 8, bottom: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Expanded(child: Text(step, style: const TextStyle(fontSize: 13, height: 1.3))),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FA),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE9ECEF)),
+              ),
+              child: Text(
+                remedy.disclaimer,
+                style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Color(0xFF6C757D)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
