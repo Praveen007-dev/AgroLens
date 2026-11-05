@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "required": ["status", "commodity", "market", "forecast", "model_version"],
+  "properties": {
+    "status": {"enum": ["ok", "insufficient_data"]},
+    "commodity": {"type": "string"},
+    "market": {"type": "string"},
+    "forecast": {"type": "array"},
+    "history_count": {"type": "integer"},
+    "model_version": {"type": "string"},
+    "limitations": {"type": "array", "items": {"type": "string"}}
+  }
+}
