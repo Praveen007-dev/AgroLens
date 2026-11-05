@@ -10,6 +10,7 @@ class SchemeInput(BaseModel):
     scheme_name: str = Field(..., min_length=1, max_length=200)
     government_level: Literal["central", "state"]
     state: str | None = Field(None, min_length=1, max_length=100)
+    category: str | None = Field(None, min_length=1, max_length=100)
     description: str | None = None
     eligibility: str | None = None
     benefits: str | None = None

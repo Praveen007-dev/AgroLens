@@ -16,3 +16,17 @@ def get_setting(name: str) -> str | None:
         return None
     value = value.strip()
     return value or None
+
+
+def get_cors_origins() -> list[str]:
+    configured = get_setting("AGROLENS_CORS_ORIGINS")
+    if configured is None:
+        return [
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://localhost:5000",
+            "http://localhost:7357",
+            "http://127.0.0.1:5000",
+            "http://127.0.0.1:7357",
+        ]
+    return [origin.strip() for origin in configured.split(",") if origin.strip()]

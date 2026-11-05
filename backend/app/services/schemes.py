@@ -19,6 +19,7 @@ def _record_from_row(row: sqlite3.Row) -> SchemeRecord:
 def list_schemes(
     government_level: str | None,
     state: str | None,
+    category: str | None,
     limit: int,
     offset: int,
 ) -> tuple[list[SchemeRecord], int]:
@@ -31,6 +32,9 @@ def list_schemes(
     if state is not None:
         filters.append("state = ?")
         parameters.append(state)
+    if category is not None:
+        filters.append("category = ?")
+        parameters.append(category)
 
     where_clause = f" WHERE {' AND '.join(filters)}" if filters else ""
     connection = database.get_connection()
@@ -76,12 +80,12 @@ def create_scheme(scheme: SchemeInput) -> SchemeRecord:
         connection.execute(
             """
             INSERT INTO agriculture_schemes (
-                scheme_id, scheme_name, government_level, state,
+                scheme_id, scheme_name, government_level, state, category,
                 description, eligibility, benefits, required_documents,
                 application_deadline, official_url, source_name, source_url,
                 last_verified_at
             ) VALUES (
-                :scheme_id, :scheme_name, :government_level, :state,
+                :scheme_id, :scheme_name, :government_level, :state, :category,
                 :description, :eligibility, :benefits, :required_documents,
                 :application_deadline, :official_url, :source_name, :source_url,
                 :last_verified_at
@@ -117,6 +121,7 @@ def update_scheme(scheme_id: str, scheme: SchemeInput) -> SchemeRecord | None:
                 scheme_name = :scheme_name,
                 government_level = :government_level,
                 state = :state,
+                category = :category,
                 description = :description,
                 eligibility = :eligibility,
                 benefits = :benefits,

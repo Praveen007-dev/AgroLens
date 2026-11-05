@@ -246,6 +246,103 @@ def init_db():
             ON national_mandi_daily_summaries(commodity, observation_date DESC)
         """)
 
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS mobile_scan_details (
+                scan_id TEXT PRIMARY KEY,
+                image_path TEXT,
+                image_reference TEXT,
+                prediction_id TEXT,
+                top_predictions TEXT,
+                is_low_confidence INTEGER,
+                inference_timestamp TEXT,
+                farmer_feedback TEXT,
+                expert_verification TEXT,
+                latitude REAL,
+                longitude REAL,
+                location_region TEXT,
+                location_has_consent INTEGER NOT NULL DEFAULT 0
+                    CHECK (location_has_consent IN (0, 1)),
+                sync_status TEXT NOT NULL DEFAULT 'pending',
+                metadata TEXT,
+                FOREIGN KEY (scan_id)
+                    REFERENCES scan_records(scan_id)
+                    ON DELETE CASCADE
+            )
+        """)
+        mobile_detail_columns = {
+            row["name"]
+            for row in cursor.execute(
+                "PRAGMA table_info(mobile_scan_details)"
+            ).fetchall()
+        }
+        for column in ("latitude", "longitude"):
+            if column not in mobile_detail_columns:
+                cursor.execute(
+                    f"ALTER TABLE mobile_scan_details ADD COLUMN {column} REAL"
+                )
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS auth_users (
+                user_id TEXT PRIMARY KEY,
+                username TEXT NOT NULL COLLATE NOCASE UNIQUE,
+                email TEXT NOT NULL COLLATE NOCASE UNIQUE,
+                password_hash TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS auth_sessions (
+                token_hash TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                FOREIGN KEY (user_id)
+                    REFERENCES auth_users(user_id)
+                    ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_auth_sessions_user
+            ON auth_sessions(user_id)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_auth_sessions_expiry
+            ON auth_sessions(expires_at)
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS auth_password_resets (
+                token_hash TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                used_at TEXT,
+                FOREIGN KEY (user_id)
+                    REFERENCES auth_users(user_id)
+                    ON DELETE CASCADE
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS auth_rate_limits (
+                bucket_key TEXT PRIMARY KEY,
+                window_started_at TEXT NOT NULL,
+                attempt_count INTEGER NOT NULL
+            )
+        """)
+
+        scheme_columns = {
+            row["name"]
+            for row in cursor.execute(
+                "PRAGMA table_info(agriculture_schemes)"
+            ).fetchall()
+        }
+        if "category" not in scheme_columns:
+            cursor.execute(
+                "ALTER TABLE agriculture_schemes ADD COLUMN category TEXT"
+            )
+
         connection.commit()
 
         print("AgroLens database initialized successfully!")

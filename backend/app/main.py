@@ -1,10 +1,15 @@
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from backend.app.config import get_cors_origins
 from backend.app.database import init_db, get_connection
 from backend.app.routers.mandi import router as mandi_router
+from backend.app.routers.auth import router as auth_router
+from backend.app.routers.mobile import router as mobile_router
 from backend.app.routers.news import router as news_router
 from backend.app.routers.schemes import router as schemes_router
 from backend.app.routers.weather import router as weather_router
@@ -66,20 +71,36 @@ app.include_router(schemes_router)
 app.include_router(weather_router)
 app.include_router(news_router)
 app.include_router(mandi_router)
+app.include_router(mobile_router)
+app.include_router(auth_router, prefix="/api")
 
 
 
 # CORS configuration for local dashboard development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-    ],
+    allow_origins=get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def auth_validation_exception_handler(
+    request: Request,
+    error: RequestValidationError,
+):
+    errors = error.errors()
+    if request.url.path.startswith(("/api/v1/auth/", "/api/auth/")):
+        errors = [
+            {key: value for key, value in item.items() if key != "input"}
+            for item in errors
+        ]
+    return JSONResponse(
+        status_code=422,
+        content={"detail": jsonable_encoder(errors)},
+    )
 
 
 @app.on_event("startup")
@@ -96,6 +117,11 @@ def health_check():
         "status": "healthy",
         "service": "AgroLens Backend"
     }
+
+
+@app.get("/health", tags=["System"])
+def root_health_check():
+    return health_check()
 
 
 # --------------------------------------------------

@@ -45,12 +45,14 @@ def list_schemes(
         default=None, pattern="^(central|state)$"
     ),
     state: str | None = Query(default=None, min_length=1, max_length=100),
+    category: str | None = Query(default=None, min_length=1, max_length=100),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ):
     records, total = scheme_service.list_schemes(
         government_level=government_level,
         state=state,
+        category=category,
         limit=limit,
         offset=offset,
     )

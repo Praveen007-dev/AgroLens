@@ -80,6 +80,14 @@ Backend base URL:
 http://127.0.0.1:8000
 ```
 
+The mobile API base URL is `http://127.0.0.1:8000/api/v1` for local
+development. Existing clients can continue using the original `/api/...`
+routes. The versioned API adds `/health`, `/scans`, `/auth`, `/weather`,
+`/schemes`, `/news`, and `/market/...`; the existing `/api/weather/current`,
+`/api/weather/forecast`, `/api/mandi/...`, `/api/schemes`, and `/api/news`
+routes remain available. On a device, replace `127.0.0.1` with the backend
+computer's LAN address. Use HTTPS in deployments.
+
 ## API Documentation
 
 Interactive Swagger documentation:
@@ -98,7 +106,7 @@ http://127.0.0.1:8000/redoc
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/health` | Health check |
+| GET | `/health`, `/api/health`, `/api/v1/health` | Health check |
 | POST | `/api/scans` | Submit a scan record |
 | GET | `/api/scans` | Retrieve scans with filters |
 | GET | `/api/scans/{scan_id}` | Retrieve one scan |
@@ -420,7 +428,8 @@ http://localhost:3000
 http://localhost:5173
 ```
 
-These origins are configured in `app/main.py`.
+These origins default in `app/config.py`; override them with
+`AGROLENS_CORS_ORIGINS`.
 
 ## Running Tests
 
@@ -449,7 +458,192 @@ GET http://127.0.0.1:8000/api/analytics/summary
 
 For a mobile device or another computer, `127.0.0.1` must be replaced with the backend computer's LAN IP address.
 
-The schema currently used is provisional and must be aligned with the shared project contract before final integration.
+The versioned mobile scan contract below is available at
+`/api/v1/scans`; the older scan API remains available at `/api/scans`.
+
+## Mobile API v1
+
+The Flutter client's mobile API base URL is:
+
+```text
+http://127.0.0.1:8000/api/v1
+```
+
+The mobile routes below are relative to that base URL:
+
+| Method | Route | Notes |
+|---|---|---|
+| GET | `/health` | Health check |
+| POST, GET | `/scans` | Create scan / paginated history |
+| POST | `/scans/batch` | Atomic batch sync |
+| GET | `/scans/{scan_id}` | Retrieve a scan |
+| POST | `/scans/{scan_id}/feedback` | Create or replace farmer feedback |
+| POST | `/auth/register`, `/auth/login` | Create account or start a session |
+| POST | `/auth/forgot-password`, `/auth/reset-password` | Password reset |
+| POST | `/auth/change-password`, `/auth/logout` | Authenticated session actions |
+| GET | `/auth/me` | Authenticated profile |
+| GET | `/weather`, `/schemes`, `/news` | Agriculture information |
+| GET | `/market/prices`, `/market/history`, `/market/forecast` | Market data |
+
+The existing `/api/...` endpoints remain unchanged. Versioned mobile names
+intentionally differ from those legacy names (for example, `/weather` maps
+the existing current-weather/forecast service and `/market/prices` maps
+`/api/mandi/prices/latest`).
+
+For Flutter Web, set `AGROLENS_CORS_ORIGINS` to a comma-separated list of
+allowed browser origins. Local defaults include Flutter's common
+`localhost:5000` and `localhost:7357` development ports. The API accepts
+standard JSON requests and does not require `X-Client-App` or
+`X-Client-Version`; those headers may be sent by clients.
+
+### Scan history and feedback
+
+`POST /scans` accepts a mobile inference record. The mobile app performs
+inference locally; there is no disease-prediction endpoint. Example:
+
+```json
+{
+  "scan_id": "unique-id",
+  "timestamp": "2026-11-05T08:30:00Z",
+  "crop": "Tomato",
+  "image_path": "device-local-path",
+  "image_reference": null,
+  "ai_prediction": {
+    "prediction_id": "prediction-id",
+    "crop": "Tomato",
+    "disease_label": "Tomato___Early_blight",
+    "confidence": 0.91,
+    "top_predictions": [
+      {"label": "Tomato___Early_blight", "confidence": 0.91}
+    ],
+    "is_low_confidence": false,
+    "model_version": "model-version",
+    "inference_timestamp": "2026-11-05T08:29:59Z"
+  },
+  "farmer_feedback": null,
+  "expert_verification": null,
+  "location": {
+    "latitude": 12.97,
+    "longitude": 77.59,
+    "region": "Karnataka",
+    "has_consent": true
+  },
+  "sync_status": "pending",
+  "metadata": null
+}
+```
+
+`timestamp` and `inference_timestamp` must be ISO-8601 values with timezone.
+Confidence values are in `[0, 1]`; the scan and prediction crop names must
+match. Replaying an identical `scan_id` and payload is safe; reusing an ID
+with different data returns `409`. `POST /scans/batch` accepts an array of
+1–100 records and is atomic: a conflicting record rejects the whole batch.
+`GET /scans?limit=20&offset=0` returns `{ "items": [...], "total": n, ... }`.
+`GET /scans/{scan_id}` returns `404` for a missing record.
+
+The server stores device `image_path` only as text metadata; it never opens or
+uploads that path. Coordinates and region are stored and returned only when
+`location.has_consent` is true. AI inference, farmer feedback, and expert
+verification remain separate; receiving an AI result does not mark a scan
+expert verified. `POST /scans/{scan_id}/feedback` replaces the scan's current
+farmer feedback and returns `204`, or `404` when the scan is missing.
+
+Scan and agriculture endpoints remain public for compatibility with the
+current Flutter client, which does not yet send session credentials. Do not
+rely on this API for per-user data isolation until the client and authorization
+policy are coordinated.
+
+### Username and password authentication
+
+Local username/password auth is implemented under both `/api/v1/auth/...`
+and the compatibility alias `/api/auth/...`. It is independent of scan and
+agriculture routes:
+
+- `POST /auth/register` with `{ "username", "email", "password" }`
+- `POST /auth/login` with `{ "identifier", "password" }` where identifier is
+  an email or username
+- `GET /auth/me`
+- `POST /auth/logout`
+- `POST /auth/change-password`
+- `POST /auth/forgot-password`
+- `POST /auth/reset-password`
+
+Usernames are normalized to lowercase and must be 3–32 letters, digits, or
+underscores. Emails are normalized to lowercase. Passwords must be 8–128
+characters and contain at least one letter and one digit. Passwords are
+hashed with Argon2id; plaintext passwords are not stored or returned.
+Registration returns `201`, creates a session, and returns a basic user
+profile. Duplicate usernames/emails return `409`; login failures return the
+same generic `401` response.
+
+Example registration response:
+
+```json
+{
+  "access_token": "<opaque-session-token>",
+  "token_type": "Bearer",
+  "expires_at": "2026-12-05T08:30:00Z",
+  "user": {
+    "user_id": "<user-id>",
+    "username": "farmer_01",
+    "email": "farmer@example.com",
+    "created_at": "2026-11-05T08:30:00Z"
+  }
+}
+```
+
+Send the returned token to authenticated endpoints:
+
+```http
+Authorization: Bearer <opaque-session-token>
+```
+
+Session credentials are random opaque bearer values. Only their SHA-256
+digests are stored. Sessions expire after 30 days; there is no refresh-token
+flow. Logout revokes the current session. Password reset invalidates all
+sessions, and password change preserves the current session while revoking
+other sessions. Rate limiting is persisted in SQLite: up to 10 login attempts
+per identifier/IP in 15 minutes (and 50 per IP), and 5 reset requests per
+email/IP per hour (and 20 per IP).
+
+Password reset responses are generic whether or not an account exists. To
+deliver reset tokens, configure `AGROLENS_SMTP_HOST`, `AGROLENS_SMTP_PORT`,
+`AGROLENS_SMTP_USERNAME`, `AGROLENS_SMTP_PASSWORD`,
+`AGROLENS_AUTH_FROM_EMAIL`, and `AGROLENS_AUTH_PUBLIC_BASE_URL`. Delivery uses
+SMTP over TLS. Without this configuration no reset token is created or
+exposed, and the endpoint still returns the generic response. OAuth is not
+implemented: the current mobile client has no provider buttons or OAuth
+exchange flow.
+
+The current Flutter app still uses local-only auth. It must be separately
+updated to call register/login, securely store the returned `access_token`,
+send `Authorization: Bearer <access_token>` for `/auth/me`, logout, password changes,
+and any future protected endpoints. The API does not require that token for
+scan or agriculture endpoints at this stage.
+
+### Agriculture data adapters
+
+Versioned read adapters reuse the existing catalogs and provider services:
+
+- `GET /weather?location=<place-or-latitude,longitude>&days=3` maps the
+  existing provider result. `advisory` is sourced from provider alerts and
+  remains `null` when no alert exists; unavailable weather returns the
+  existing provider error rather than sample values.
+- `GET /schemes?state=<state>&category=<category>` reads verified catalog
+  records. Category is optional and `null` when not supplied; unavailable
+  fields are not inferred.
+- `GET /news?category=<category>` reads imported articles. Summaries remain
+  distinct from `original_url`.
+- `GET /market/prices?commodity=Tomato&state=Karnataka&district=...&market=...`
+  and `GET /market/history?commodity=Tomato&market=...&days=30` read only
+  locally synchronized mandi observations. Currency is `INR`; unit is `null`
+  when not supplied by the official source.
+- `GET /market/forecast?commodity=Tomato&market=...&days=5` currently returns
+  `forecast_available: false` and an empty `items` list. No validated
+  forecasting model is configured, so the backend does not fabricate
+  estimates.
+
+All list adapters return `{ "items": [...] }` with pagination metadata.
 
 ## Current Status
 
@@ -470,4 +664,5 @@ The schema currently used is provisional and must be aligned with the shared pro
 - Shared scan schema alignment is pending.
 - No real IIHR or government department integration exists.
 - Expert verification workflow is not yet implemented.
-- Authentication and authorization are not yet implemented.
+- Versioned username/password authentication uses local SQLite sessions; scan
+  and agriculture endpoints are intentionally not user-protected yet.
