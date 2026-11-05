@@ -91,9 +91,12 @@ class HttpAuthService implements AuthService {
   }
 
   AuthSession _sessionFrom(Map<String, dynamic> response, String token) {
-    final user = Map<String, dynamic>.from(response['user'] as Map);
+    final userRaw = response['user'];
+    final user = userRaw is Map
+        ? Map<String, dynamic>.from(userRaw)
+        : response;
     return AuthSession(
-      email: user['email'] as String,
+      email: (user['email'] as String?) ?? '',
       username: user['username'] as String?,
       accessToken: token,
     );
