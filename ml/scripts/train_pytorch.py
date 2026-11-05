@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 import random
+import time
 
 import torch
 from torch import nn
@@ -16,7 +17,7 @@ from torchvision import datasets, models, transforms
 class LowResolutionDegradation:
     """Simulate small, compressed, noisy phone images during training."""
 
-    def __init__(self, min_size: int = 48, probability: float = 0.7):
+    def __init__(self, min_size: int = 48, probability: float = 0.5):
         self.min_size = min_size
         self.probability = probability
 
@@ -48,14 +49,16 @@ def split_indices(targets: list[int], fraction: float, seed: int):
     return train, validation
 
 
-def evaluate(model, loader, device, loss_function):
+def evaluate(model, loader, device, loss_function, use_amp: bool = True):
     model.eval()
     total_loss = correct = count = 0
     with torch.no_grad():
         for images, labels in loader:
-            images, labels = images.to(device), labels.to(device)
-            outputs = model(images)
-            total_loss += loss_function(outputs, labels).item() * labels.size(0)
+            images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
+            with torch.amp.autocast("cuda", enabled=use_amp):
+                outputs = model(images)
+                loss = loss_function(outputs, labels)
+            total_loss += loss.item() * labels.size(0)
             correct += (outputs.argmax(1) == labels).sum().item()
             count += labels.size(0)
     return total_loss / count, correct / count
@@ -74,11 +77,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--test-dataset", type=Path)
-    parser.add_argument("--output-dir", type=Path, default=Path("ml/models/plantdoc-mobilenetv3"))
-    parser.add_argument("--epochs", type=int, default=12)
-    parser.add_argument("--patience", type=int, default=4)
+    parser.add_argument("--output-dir", type=Path, default=Path("ml/models/plantleaf-mobilenetv3"))
+    parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--patience", type=int, default=5)
     parser.add_argument("--min-delta", type=float, default=0.001)
-    parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--validation-fraction", type=float, default=0.2)
     parser.add_argument("--image-size", type=int, default=224)
     parser.add_argument(
@@ -103,10 +107,12 @@ def main() -> None:
     if not torch.cuda.is_available():
         raise SystemExit("CUDA is unavailable; refusing to run this GPU trainer on CPU")
     device = torch.device("cuda")
-    print(f"Using {torch.cuda.get_device_name(device)}")
+    print(f"[AgroLens GPU Trainer] Using GPU: {torch.cuda.get_device_name(device)}")
     if args.low_resolution:
         args.image_size = 160
         print("Low-resolution mode: 160x160 input with degradation augmentation")
+    else:
+        print(f"High-resolution mode: {args.image_size}x{args.image_size} input")
 
     normalize = transforms.Normalize(
         mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
@@ -115,11 +121,9 @@ def main() -> None:
         [
             transforms.Resize((args.image_size, args.image_size)),
             transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(10),
-            transforms.RandomApply(
-                [transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0))], p=0.25
-            ),
-            LowResolutionDegradation(),
+            transforms.RandomVerticalFlip(p=0.3),
+            transforms.RandomRotation(15),
+            transforms.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.15),
             transforms.ToTensor(),
             normalize,
         ]
@@ -147,6 +151,8 @@ def main() -> None:
         Subset(validation_base, validation_indices), batch_size=args.batch_size,
         shuffle=False, num_workers=args.num_workers, pin_memory=True,
     )
+    print(f"Loaded {len(base.classes)} classes | Train: {len(train_indices)} images | Val: {len(validation_indices)} images | Batches/epoch: {len(train_loader)}")
+
     if args.architecture == "mobilenet_v3_large":
         weights = models.MobileNet_V3_Large_Weights.DEFAULT
         model = models.mobilenet_v3_large(weights=weights)
@@ -158,42 +164,53 @@ def main() -> None:
     model.classifier[3] = nn.Linear(model.classifier[3].in_features, len(base.classes))
     model.to(device)
     loss_function = nn.CrossEntropyLoss(label_smoothing=0.1)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.5, patience=1, min_lr=1e-6
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=args.epochs, eta_min=1e-6
     )
+    scaler = torch.amp.GradScaler("cuda")
+
     args.output_dir.mkdir(parents=True, exist_ok=True)
     best_validation_loss = float("inf")
     best_epoch = 0
     epochs_without_improvement = 0
     summary = []
+
+    print(f"Starting thorough training on {torch.cuda.get_device_name(device)} with Mixed Precision (AMP)...")
     for epoch in range(args.epochs):
+        start_time = time.time()
         model.train()
         running_loss = correct = count = 0
-        for images, labels in train_loader:
+        for batch_idx, (images, labels) in enumerate(train_loader):
             images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
             optimizer.zero_grad(set_to_none=True)
-            outputs = model(images)
-            loss = loss_function(outputs, labels)
-            loss.backward()
-            optimizer.step()
+            with torch.amp.autocast("cuda"):
+                outputs = model(images)
+                loss = loss_function(outputs, labels)
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+
             running_loss += loss.item() * labels.size(0)
             correct += (outputs.argmax(1) == labels).sum().item()
             count += labels.size(0)
+
+        scheduler.step()
         validation_loss, validation_accuracy = evaluate(
-            model, validation_loader, device, loss_function
+            model, validation_loader, device, loss_function, use_amp=True
         )
-        scheduler.step(validation_loss)
+        elapsed = time.time() - start_time
         metrics = {
             "epoch": epoch + 1,
-            "train_loss": running_loss / count,
-            "train_accuracy": correct / count,
-            "validation_loss": validation_loss,
-            "validation_accuracy": validation_accuracy,
-            "learning_rate": optimizer.param_groups[0]["lr"],
+            "train_loss": round(running_loss / count, 4),
+            "train_accuracy": round(correct / count, 4),
+            "validation_loss": round(validation_loss, 4),
+            "validation_accuracy": round(validation_accuracy, 4),
+            "learning_rate": round(optimizer.param_groups[0]["lr"], 6),
+            "elapsed_seconds": round(elapsed, 1),
         }
         summary.append(metrics)
-        print(json.dumps(metrics))
+        print(f"Epoch {epoch + 1:2d}/{args.epochs:2d} | Train Loss: {metrics['train_loss']:.4f} Acc: {metrics['train_accuracy'] * 100:.2f}% | Val Loss: {metrics['validation_loss']:.4f} Acc: {metrics['validation_accuracy'] * 100:.2f}% | Time: {elapsed:.1f}s")
         if validation_loss < best_validation_loss - args.min_delta:
             best_validation_loss = validation_loss
             best_epoch = epoch + 1
@@ -208,6 +225,7 @@ def main() -> None:
                 },
                 args.output_dir / "best.pt",
             )
+            print(f"  -> Checkpoint saved to {args.output_dir / 'best.pt'}")
         else:
             epochs_without_improvement += 1
             if epochs_without_improvement >= args.patience:
@@ -240,6 +258,7 @@ def main() -> None:
         + "\n",
         encoding="utf-8",
     )
+    print(f"[Done] Training complete. Best Epoch: {best_epoch} | Best Val Loss: {best_validation_loss:.4f}")
 
 
 if __name__ == "__main__":
