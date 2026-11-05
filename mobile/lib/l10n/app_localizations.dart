@@ -317,20 +317,38 @@ abstract class AppLocalizations {
   /// No description provided for @locationTitle.
   ///
   /// In en, this message translates to:
-  /// **'Optional location'**
+  /// **'Farm location'**
   String get locationTitle;
 
   /// No description provided for @locationPrivacyNotice.
   ///
   /// In en, this message translates to:
-  /// **'Your location is only requested if you choose Add location. If added, coordinates are saved with this scan on this device.'**
+  /// **'Required for every scan. Your location is only requested when you tap the button and is saved with the scan on this device.'**
   String get locationPrivacyNotice;
+
+  /// No description provided for @requiredLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get requiredLabel;
+
+  /// No description provided for @readyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get readyLabel;
 
   /// No description provided for @addLocation.
   ///
   /// In en, this message translates to:
-  /// **'Add location'**
+  /// **'Use my location'**
   String get addLocation;
+
+  /// No description provided for @updateLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Update location'**
+  String get updateLocation;
 
   /// No description provided for @removeLocation.
   ///
@@ -343,6 +361,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Getting location...'**
   String get gettingLocation;
+
+  /// No description provided for @locationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Set your farm location before analyzing a crop.'**
+  String get locationRequired;
 
   /// No description provided for @locationCoordinates.
   ///
@@ -359,14 +383,32 @@ abstract class AppLocalizations {
   /// No description provided for @locationPermissionDenied.
   ///
   /// In en, this message translates to:
-  /// **'Location permission was denied. Allow location access to add a location to this scan.'**
+  /// **'Location permission was denied. Allow location access to continue with a scan.'**
   String get locationPermissionDenied;
 
   /// No description provided for @locationPermissionDeniedForever.
   ///
   /// In en, this message translates to:
-  /// **'Location permission is blocked. Enable it in your browser or device settings to add a location.'**
+  /// **'Location permission is blocked. Enable it in your browser or device settings to scan.'**
   String get locationPermissionDeniedForever;
+
+  /// No description provided for @locationPositionUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not get a GPS fix within 60 seconds. Check your signal and try again.'**
+  String get locationPositionUnavailable;
+
+  /// No description provided for @locationSettingsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open settings. Open your device settings manually and try again.'**
+  String get locationSettingsUnavailable;
+
+  /// No description provided for @openSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get openSettings;
 
   /// No description provided for @locationRequestFailed.
   ///
@@ -463,6 +505,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Leaf blast'**
   String get diseaseLeafBlast;
+
+  /// No description provided for @authWelcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to AgroLens'**
+  String get authWelcomeTitle;
+
+  /// No description provided for @authWelcomeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to continue caring for your crops.'**
+  String get authWelcomeSubtitle;
+
+  /// No description provided for @authIdentifier.
+  ///
+  /// In en, this message translates to:
+  /// **'Email or username'**
+  String get authIdentifier;
+
+  /// No description provided for @authPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get authPassword;
+
+  /// No description provided for @authConfirmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm password'**
+  String get authConfirmPassword;
+
+  /// No description provided for @authEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get authEmail;
+
+  /// No description provided for @authUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get authUsername;
+
+  /// No description provided for @authForgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get authForgotPassword;
+
+  /// No description provided for @authLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Log in'**
+  String get authLogin;
+
+  /// No description provided for @authSignUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign up'**
+  String get authSignUp;
+
+  /// No description provided for @authCreateAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your account'**
+  String get authCreateAccount;
+
+  /// No description provided for @authNoAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'New to AgroLens?'**
+  String get authNoAccount;
+
+  /// No description provided for @authHaveAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account?'**
+  String get authHaveAccount;
+
+  /// No description provided for @authSendResetLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Send reset link'**
+  String get authSendResetLink;
+
+  /// No description provided for @authResetPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset your password'**
+  String get authResetPasswordTitle;
+
+  /// No description provided for @authResetPasswordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email and we’ll send a reset link if an account matches.'**
+  String get authResetPasswordSubtitle;
+
+  /// No description provided for @authBackToLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to log in'**
+  String get authBackToLogin;
+
+  /// No description provided for @authPasswordTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Use at least 8 characters.'**
+  String get authPasswordTooShort;
+
+  /// No description provided for @authPasswordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match.'**
+  String get authPasswordMismatch;
+
+  /// No description provided for @authEmailInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address.'**
+  String get authEmailInvalid;
+
+  /// No description provided for @authUsernameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a username.'**
+  String get authUsernameRequired;
+
+  /// No description provided for @authRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This field is required.'**
+  String get authRequired;
+
+  /// No description provided for @authUnexpectedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get authUnexpectedError;
+
+  /// No description provided for @authResetSent.
+  ///
+  /// In en, this message translates to:
+  /// **'If an account matches that email, a password reset link is on its way.'**
+  String get authResetSent;
+
+  /// No description provided for @authLoggingIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Signing in…'**
+  String get authLoggingIn;
+
+  /// No description provided for @authCreatingAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Creating account…'**
+  String get authCreatingAccount;
+
+  /// No description provided for @authSendingReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending…'**
+  String get authSendingReset;
+
+  /// No description provided for @authShowPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get authShowPassword;
+
+  /// No description provided for @authHidePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get authHidePassword;
+
+  /// No description provided for @authLoggedInAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in as {name}'**
+  String authLoggedInAs(String name);
+
+  /// No description provided for @authLogOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out'**
+  String get authLogOut;
 }
 
 class _AppLocalizationsDelegate

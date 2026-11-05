@@ -131,20 +131,33 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get locationTitle => 'Optional location';
+  String get locationTitle => 'Farm location';
 
   @override
   String get locationPrivacyNotice =>
-      'Your location is only requested if you choose Add location. If added, coordinates are saved with this scan on this device.';
+      'Required for every scan. Your location is only requested when you tap the button and is saved with the scan on this device.';
 
   @override
-  String get addLocation => 'Add location';
+  String get requiredLabel => 'Required';
+
+  @override
+  String get readyLabel => 'Ready';
+
+  @override
+  String get addLocation => 'Use my location';
+
+  @override
+  String get updateLocation => 'Update location';
 
   @override
   String get removeLocation => 'Remove location';
 
   @override
   String get gettingLocation => 'Getting location...';
+
+  @override
+  String get locationRequired =>
+      'Set your farm location before analyzing a crop.';
 
   @override
   String locationCoordinates(String latitude, String longitude) {
@@ -157,11 +170,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get locationPermissionDenied =>
-      'Location permission was denied. Allow location access to add a location to this scan.';
+      'Location permission was denied. Allow location access to continue with a scan.';
 
   @override
   String get locationPermissionDeniedForever =>
-      'Location permission is blocked. Enable it in your browser or device settings to add a location.';
+      'Location permission is blocked. Enable it in your browser or device settings to scan.';
+
+  @override
+  String get locationPositionUnavailable =>
+      'Could not get a GPS fix within 60 seconds. Check your signal and try again.';
+
+  @override
+  String get locationSettingsUnavailable =>
+      'Could not open settings. Open your device settings manually and try again.';
+
+  @override
+  String get openSettings => 'Open settings';
 
   @override
   String locationRequestFailed(String error) {
@@ -212,4 +236,102 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get diseaseLeafBlast => 'Leaf blast';
+
+  @override
+  String get authWelcomeTitle => 'Welcome to AgroLens';
+
+  @override
+  String get authWelcomeSubtitle =>
+      'Sign in to continue caring for your crops.';
+
+  @override
+  String get authIdentifier => 'Email or username';
+
+  @override
+  String get authPassword => 'Password';
+
+  @override
+  String get authConfirmPassword => 'Confirm password';
+
+  @override
+  String get authEmail => 'Email';
+
+  @override
+  String get authUsername => 'Username';
+
+  @override
+  String get authForgotPassword => 'Forgot password?';
+
+  @override
+  String get authLogin => 'Log in';
+
+  @override
+  String get authSignUp => 'Sign up';
+
+  @override
+  String get authCreateAccount => 'Create your account';
+
+  @override
+  String get authNoAccount => 'New to AgroLens?';
+
+  @override
+  String get authHaveAccount => 'Already have an account?';
+
+  @override
+  String get authSendResetLink => 'Send reset link';
+
+  @override
+  String get authResetPasswordTitle => 'Reset your password';
+
+  @override
+  String get authResetPasswordSubtitle =>
+      'Enter your email and we’ll send a reset link if an account matches.';
+
+  @override
+  String get authBackToLogin => 'Back to log in';
+
+  @override
+  String get authPasswordTooShort => 'Use at least 8 characters.';
+
+  @override
+  String get authPasswordMismatch => 'Passwords do not match.';
+
+  @override
+  String get authEmailInvalid => 'Enter a valid email address.';
+
+  @override
+  String get authUsernameRequired => 'Enter a username.';
+
+  @override
+  String get authRequired => 'This field is required.';
+
+  @override
+  String get authUnexpectedError => 'Something went wrong. Please try again.';
+
+  @override
+  String get authResetSent =>
+      'If an account matches that email, a password reset link is on its way.';
+
+  @override
+  String get authLoggingIn => 'Signing in…';
+
+  @override
+  String get authCreatingAccount => 'Creating account…';
+
+  @override
+  String get authSendingReset => 'Sending…';
+
+  @override
+  String get authShowPassword => 'Show password';
+
+  @override
+  String get authHidePassword => 'Hide password';
+
+  @override
+  String authLoggedInAs(String name) {
+    return 'Signed in as $name';
+  }
+
+  @override
+  String get authLogOut => 'Log out';
 }

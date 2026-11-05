@@ -131,20 +131,33 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get locationTitle => 'वैकल्पिक स्थान';
+  String get locationTitle => 'खेत का स्थान';
 
   @override
   String get locationPrivacyNotice =>
-      'आपका स्थान केवल तभी माँगा जाएगा जब आप स्थान जोड़ें चुनेंगे। जोड़े गए निर्देशांक इस डिवाइस पर इस स्कैन के साथ सहेजे जाएँगे।';
+      'हर स्कैन के लिए स्थान आवश्यक है। बटन दबाने पर ही स्थान माँगा जाएगा और इस डिवाइस पर स्कैन के साथ सहेजा जाएगा।';
 
   @override
-  String get addLocation => 'स्थान जोड़ें';
+  String get requiredLabel => 'आवश्यक';
+
+  @override
+  String get readyLabel => 'तैयार';
+
+  @override
+  String get addLocation => 'मेरा स्थान उपयोग करें';
+
+  @override
+  String get updateLocation => 'स्थान अपडेट करें';
 
   @override
   String get removeLocation => 'स्थान हटाएँ';
 
   @override
   String get gettingLocation => 'स्थान प्राप्त हो रहा है...';
+
+  @override
+  String get locationRequired =>
+      'फसल का विश्लेषण करने से पहले खेत का स्थान सेट करें।';
 
   @override
   String locationCoordinates(String latitude, String longitude) {
@@ -157,11 +170,22 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get locationPermissionDenied =>
-      'स्थान की अनुमति नहीं मिली। इस स्कैन में स्थान जोड़ने के लिए अनुमति दें।';
+      'स्थान की अनुमति नहीं मिली। स्कैन जारी रखने के लिए स्थान की अनुमति दें।';
 
   @override
   String get locationPermissionDeniedForever =>
-      'स्थान की अनुमति ब्लॉक है। स्थान जोड़ने के लिए ब्राउज़र या डिवाइस सेटिंग में अनुमति दें।';
+      'स्थान की अनुमति ब्लॉक है। स्कैन करने के लिए ब्राउज़र या डिवाइस सेटिंग में अनुमति दें।';
+
+  @override
+  String get locationPositionUnavailable =>
+      '60 सेकंड में GPS स्थान नहीं मिला। सिग्नल जाँचें और फिर कोशिश करें।';
+
+  @override
+  String get locationSettingsUnavailable =>
+      'सेटिंग नहीं खुल सकी। डिवाइस सेटिंग खोलकर फिर कोशिश करें।';
+
+  @override
+  String get openSettings => 'सेटिंग खोलें';
 
   @override
   String locationRequestFailed(String error) {
@@ -212,4 +236,102 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get diseaseLeafBlast => 'पत्ती झुलसा';
+
+  @override
+  String get authWelcomeTitle => 'AgroLens में आपका स्वागत है';
+
+  @override
+  String get authWelcomeSubtitle =>
+      'अपनी फसलों की देखभाल जारी रखने के लिए साइन इन करें।';
+
+  @override
+  String get authIdentifier => 'ईमेल या उपयोगकर्ता नाम';
+
+  @override
+  String get authPassword => 'पासवर्ड';
+
+  @override
+  String get authConfirmPassword => 'पासवर्ड की पुष्टि करें';
+
+  @override
+  String get authEmail => 'ईमेल';
+
+  @override
+  String get authUsername => 'उपयोगकर्ता नाम';
+
+  @override
+  String get authForgotPassword => 'पासवर्ड भूल गए?';
+
+  @override
+  String get authLogin => 'साइन इन';
+
+  @override
+  String get authSignUp => 'साइन अप';
+
+  @override
+  String get authCreateAccount => 'अपना खाता बनाएँ';
+
+  @override
+  String get authNoAccount => 'AgroLens पर नए हैं?';
+
+  @override
+  String get authHaveAccount => 'पहले से खाता है?';
+
+  @override
+  String get authSendResetLink => 'रीसेट लिंक भेजें';
+
+  @override
+  String get authResetPasswordTitle => 'पासवर्ड रीसेट करें';
+
+  @override
+  String get authResetPasswordSubtitle =>
+      'ईमेल दर्ज करें। खाता मिलने पर रीसेट लिंक भेजा जाएगा।';
+
+  @override
+  String get authBackToLogin => 'साइन इन पर वापस जाएँ';
+
+  @override
+  String get authPasswordTooShort => 'कम से कम 8 अक्षर इस्तेमाल करें।';
+
+  @override
+  String get authPasswordMismatch => 'पासवर्ड मेल नहीं खाते।';
+
+  @override
+  String get authEmailInvalid => 'मान्य ईमेल पता दर्ज करें।';
+
+  @override
+  String get authUsernameRequired => 'उपयोगकर्ता नाम दर्ज करें।';
+
+  @override
+  String get authRequired => 'यह फ़ील्ड आवश्यक है।';
+
+  @override
+  String get authUnexpectedError => 'कुछ गलत हुआ। कृपया फिर कोशिश करें।';
+
+  @override
+  String get authResetSent =>
+      'यदि इस ईमेल से खाता मिला, तो पासवर्ड रीसेट लिंक भेज दिया जाएगा।';
+
+  @override
+  String get authLoggingIn => 'साइन इन हो रहा है…';
+
+  @override
+  String get authCreatingAccount => 'खाता बनाया जा रहा है…';
+
+  @override
+  String get authSendingReset => 'भेजा जा रहा है…';
+
+  @override
+  String get authShowPassword => 'पासवर्ड दिखाएँ';
+
+  @override
+  String get authHidePassword => 'पासवर्ड छिपाएँ';
+
+  @override
+  String authLoggedInAs(String name) {
+    return '$name के रूप में साइन इन';
+  }
+
+  @override
+  String get authLogOut => 'साइन आउट';
 }

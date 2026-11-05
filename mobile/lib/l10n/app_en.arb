@@ -80,11 +80,15 @@
       }
     }
   },
-  "locationTitle": "Optional location",
-  "locationPrivacyNotice": "Your location is only requested if you choose Add location. If added, coordinates are saved with this scan on this device.",
-  "addLocation": "Add location",
+  "locationTitle": "Farm location",
+  "locationPrivacyNotice": "Required for every scan. Your location is only requested when you tap the button and is saved with the scan on this device.",
+  "requiredLabel": "Required",
+  "readyLabel": "Ready",
+  "addLocation": "Use my location",
+  "updateLocation": "Update location",
   "removeLocation": "Remove location",
   "gettingLocation": "Getting location...",
+  "locationRequired": "Set your farm location before analyzing a crop.",
   "locationCoordinates": "Coordinates: {latitude}, {longitude}",
   "@locationCoordinates": {
     "placeholders": {
@@ -97,8 +101,11 @@
     }
   },
   "locationServiceDisabled": "Location services are turned off. Turn them on and try again.",
-  "locationPermissionDenied": "Location permission was denied. Allow location access to add a location to this scan.",
-  "locationPermissionDeniedForever": "Location permission is blocked. Enable it in your browser or device settings to add a location.",
+  "locationPermissionDenied": "Location permission was denied. Allow location access to continue with a scan.",
+  "locationPermissionDeniedForever": "Location permission is blocked. Enable it in your browser or device settings to scan.",
+  "locationPositionUnavailable": "Could not get a GPS fix within 60 seconds. Check your signal and try again.",
+  "locationSettingsUnavailable": "Could not open settings. Open your device settings manually and try again.",
+  "openSettings": "Open settings",
   "locationRequestFailed": "Could not get your location: {error}",
   "@locationRequestFailed": {
     "placeholders": {
@@ -121,5 +128,43 @@
   "diseaseCommonRust": "Common rust",
   "diseaseNorthernLeafBlight": "Northern leaf blight",
   "diseaseBrownSpot": "Brown spot",
-  "diseaseLeafBlast": "Leaf blast"
+  "diseaseLeafBlast": "Leaf blast",
+  "authWelcomeTitle": "Welcome to AgroLens",
+  "authWelcomeSubtitle": "Sign in to continue caring for your crops.",
+  "authIdentifier": "Email or username",
+  "authPassword": "Password",
+  "authConfirmPassword": "Confirm password",
+  "authEmail": "Email",
+  "authUsername": "Username",
+  "authForgotPassword": "Forgot password?",
+  "authLogin": "Log in",
+  "authSignUp": "Sign up",
+  "authCreateAccount": "Create your account",
+  "authNoAccount": "New to AgroLens?",
+  "authHaveAccount": "Already have an account?",
+  "authSendResetLink": "Send reset link",
+  "authResetPasswordTitle": "Reset your password",
+  "authResetPasswordSubtitle": "Enter your email and we’ll send a reset link if an account matches.",
+  "authBackToLogin": "Back to log in",
+  "authPasswordTooShort": "Use at least 8 characters.",
+  "authPasswordMismatch": "Passwords do not match.",
+  "authEmailInvalid": "Enter a valid email address.",
+  "authUsernameRequired": "Enter a username.",
+  "authRequired": "This field is required.",
+  "authUnexpectedError": "Something went wrong. Please try again.",
+  "authResetSent": "If an account matches that email, a password reset link is on its way.",
+  "authLoggingIn": "Signing in…",
+  "authCreatingAccount": "Creating account…",
+  "authSendingReset": "Sending…",
+  "authShowPassword": "Show password",
+  "authHidePassword": "Hide password",
+  "authLoggedInAs": "Signed in as {name}",
+  "@authLoggedInAs": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "authLogOut": "Log out"
 }
