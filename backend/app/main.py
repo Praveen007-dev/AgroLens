@@ -326,12 +326,13 @@ def get_scans(
                 s.verification_status,
                 p.disease_label,
                 p.confidence,
-                om.latitude,
-                om.longitude,
-                om.location_consent
+                COALESCE(om.latitude, md.latitude) AS latitude,
+                COALESCE(om.longitude, md.longitude) AS longitude,
+                COALESCE(om.location_consent, md.location_has_consent, 0) AS location_consent
             FROM scan_records s
             JOIN ai_predictions p ON s.scan_id = p.scan_id
             LEFT JOIN optional_metadata om ON s.scan_id = om.scan_id
+            LEFT JOIN mobile_scan_details md ON s.scan_id = md.scan_id
         """ + where_clause + """
             ORDER BY s.scan_timestamp DESC
             LIMIT ? OFFSET ?

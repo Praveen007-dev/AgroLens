@@ -156,6 +156,21 @@ def _store_scan(connection: sqlite3.Connection, scan: MobileScanCreate) -> bool:
             json.dumps(scan.metadata) if scan.metadata is not None else None,
         ),
     )
+    if has_consent or scan.metadata is not None:
+        connection.execute(
+            """
+            INSERT OR REPLACE INTO optional_metadata (
+                scan_id, location_consent, latitude, longitude, additional_metadata
+            ) VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                scan.scan_id,
+                int(has_consent),
+                location.latitude if has_consent else None,
+                location.longitude if has_consent else None,
+                json.dumps(scan.metadata) if scan.metadata is not None else None,
+            ),
+        )
     return True
 
 
