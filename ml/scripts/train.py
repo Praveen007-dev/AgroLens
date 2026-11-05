@@ -122,7 +122,7 @@ def main() -> None:
         import tensorflow as tf
     except ImportError as exc:
         raise SystemExit(
-            "TensorFlow is required; install ml/requirements-tflite.txt"
+            "TensorFlow is required; install ml/requirements-train.txt"
         ) from exc
 
     records = collect_images(args.dataset)
