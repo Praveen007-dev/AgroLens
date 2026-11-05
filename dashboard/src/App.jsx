@@ -5,6 +5,13 @@ import {
   PieChart, Pie, Cell, CartesianGrid, LineChart, Line, Legend
 } from 'recharts';
 
+import { MANDI_MARKETS, getMarketPriceData } from './services/mandiData';
+import {
+  INDIA_ALL_STATES_DISTRICTS,
+  getDistrictWeatherData,
+  AGRI_NEWS_SCHEMES
+} from './services/weatherNewsData';
+
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
 
 // Crop-specific historical surveillance incidence data (Field vs ICAR Benchmark)
@@ -314,6 +321,8 @@ const initialScans = [
 ];
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState('telemetry'); // 'telemetry' | 'mandi' | 'weather' | 'news'
+
   const [scans, setScans] = useState(initialScans);
   const [selectedScan, setSelectedScan] = useState(null);
 
@@ -337,6 +346,31 @@ export default function App() {
 
   // Dedicated Crop Charts State
   const [selectedChartCrop, setSelectedChartCrop] = useState('Tomato');
+
+  // Mandi & Market Analytics State (Interactive Center Selection)
+  const [selectedMandiCrop, setSelectedMandiCrop] = useState('Tomato');
+  const [selectedMandiMarket, setSelectedMandiMarket] = useState(MANDI_MARKETS[0]);
+
+  // Dynamic Mandi Pricing calculated when center or crop changes
+  const currentMandiData = useMemo(() => {
+    return getMarketPriceData(selectedMandiCrop, selectedMandiMarket);
+  }, [selectedMandiCrop, selectedMandiMarket]);
+
+  // Regional Weather State (Cascading State & District)
+  const [selectedState, setSelectedState] = useState('Karnataka');
+  const [selectedDistrict, setSelectedDistrict] = useState('Uttara Kannada');
+
+  const handleStateChange = (stateName) => {
+    setSelectedState(stateName);
+    const districts = INDIA_ALL_STATES_DISTRICTS[stateName] || [];
+    if (districts.length > 0) {
+      setSelectedDistrict(districts[0]);
+    }
+  };
+
+  const currentWeather = useMemo(() => {
+    return getDistrictWeatherData(selectedDistrict, selectedState);
+  }, [selectedDistrict, selectedState]);
 
   // Filter state
   const [filterCrop, setFilterCrop] = useState('');
@@ -461,547 +495,1005 @@ export default function App() {
         <span className="banner-badge">DEMONSTRATION MOCK DATA ACTIVE</span>
       </div>
 
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div>
-          <h1 style={{ fontSize: 28 }}>AgroLens Research Dashboard</h1>
-          <p style={{ color: '#94a3b8', fontSize: 14 }}>Field Scan Telemetry & Institutional Baseline Analytics</p>
+      {/* HEADER WITH ICAR-IIHR LOGO & INSTITUTIONAL BADGE */}
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {/* ICAR-IIHR Compact Emblem Badge */}
+          <div style={{
+            background: '#ffffff',
+            padding: 3,
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.35)',
+            border: '2px solid #38bdf8',
+            flexShrink: 0
+          }}>
+            <img
+              src="https://upload.wikimedia.org/wikipedia/en/thumb/d/d6/Logo_of_Indian_Institute_of_Horticultural_Research.jpg/250px-Logo_of_Indian_Institute_of_Horticultural_Research.jpg"
+              alt="ICAR-IIHR Logo"
+              style={{
+                width: 44,
+                height: 44,
+                objectFit: 'contain',
+                borderRadius: '50%'
+              }}
+              onError={(e) => {
+                // Fallback to ICAR Council Wheat Sheaf Emblem
+                e.target.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Logo_of_the_Indian_Council_of_Agricultural_Research.svg/250px-Logo_of_the_Indian_Council_of_Agricultural_Research.svg.png";
+              }}
+            />
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h1 style={{ fontSize: 28, margin: 0 }}>AgroLens Research Dashboard</h1>
+              <span style={{
+                background: '#1e3a5f',
+                color: '#38bdf8',
+                fontSize: 11,
+                fontWeight: 600,
+                padding: '2px 8px',
+                borderRadius: 4,
+                border: '1px solid #38bdf8'
+              }}>
+                ICAR-IIHR Aligned
+              </span>
+            </div>
+            <p style={{ color: '#94a3b8', fontSize: 14, margin: '4px 0 0 0' }}>
+              Field Scan Telemetry & Institutional Baseline Analytics
+            </p>
+          </div>
         </div>
+
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="export-btn" onClick={() => alert("Backend CSV export will connect to /api/export/scans?format=csv")}>Export CSV</button>
           <button className="export-btn" onClick={() => alert("Backend JSON export will connect to /api/export/scans?format=json")}>Export JSON</button>
         </div>
       </header>
 
-      {/* Leaf Scan & Farmer Intake */}
-      <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: 20, marginBottom: 24 }}>
-        <h3 style={{ marginBottom: 14, fontSize: 18, color: '#f8fafc' }}>Leaf Scan & Field Intake</h3>
-        
-        {/* Farmer & Location Details Form */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-          gap: 12,
-          marginBottom: 16,
-          background: '#0f172a',
-          padding: 14,
-          borderRadius: 6,
-          border: '1px solid #334155'
-        }}>
-          <div>
-            <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Farmer Name:</label>
-            <input
-              type="text"
-              placeholder="e.g. Ramesh Hegde"
-              value={farmerName}
-              onChange={(e) => setFarmerName(e.target.value)}
-              className="filter-input"
-              style={{ width: '100%' }}
-            />
-          </div>
+      {/* PRIMARY INTELLIGENCE NAVIGATION TABS */}
+      <div style={{
+        display: 'flex',
+        gap: 8,
+        borderBottom: '1px solid #334155',
+        marginBottom: 24,
+        paddingBottom: 2,
+        overflowX: 'auto'
+      }}>
+        <button
+          onClick={() => setActiveTab('telemetry')}
+          style={{
+            padding: '10px 18px',
+            background: activeTab === 'telemetry' ? '#1e293b' : 'transparent',
+            color: activeTab === 'telemetry' ? '#38bdf8' : '#94a3b8',
+            border: 'none',
+            borderBottom: activeTab === 'telemetry' ? '2px solid #38bdf8' : '2px solid transparent',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: 14,
+            borderRadius: '6px 6px 0 0'
+          }}
+        >
+          🔍 Disease & Scan Telemetry
+        </button>
 
-          <div>
-            <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Phone Number:</label>
-            <input
-              type="tel"
-              placeholder="+91 98450 12345"
-              value={farmerPhone}
-              onChange={(e) => setFarmerPhone(e.target.value)}
-              className="filter-input"
-              style={{ width: '100%' }}
-            />
-          </div>
+        <button
+          onClick={() => setActiveTab('mandi')}
+          style={{
+            padding: '10px 18px',
+            background: activeTab === 'mandi' ? '#1e293b' : 'transparent',
+            color: activeTab === 'mandi' ? '#38bdf8' : '#94a3b8',
+            border: 'none',
+            borderBottom: activeTab === 'mandi' ? '2px solid #38bdf8' : '2px solid transparent',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: 14,
+            borderRadius: '6px 6px 0 0'
+          }}
+        >
+          📈 Mandi Price Analytics
+        </button>
 
-          <div>
-            <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>District:</label>
-            <input
-              type="text"
-              placeholder="e.g. Uttara Kannada"
-              value={farmerDistrict}
-              onChange={(e) => setFarmerDistrict(e.target.value)}
-              className="filter-input"
-              style={{ width: '100%' }}
-            />
-          </div>
+        <button
+          onClick={() => setActiveTab('weather')}
+          style={{
+            padding: '10px 18px',
+            background: activeTab === 'weather' ? '#1e293b' : 'transparent',
+            color: activeTab === 'weather' ? '#38bdf8' : '#94a3b8',
+            border: 'none',
+            borderBottom: activeTab === 'weather' ? '2px solid #38bdf8' : '2px solid transparent',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: 14,
+            borderRadius: '6px 6px 0 0'
+          }}
+        >
+          🌦️ Agrometeorology & Weather
+        </button>
 
-          <div>
-            <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>State:</label>
-            <input
-              type="text"
-              value={farmerState}
-              onChange={(e) => setFarmerState(e.target.value)}
-              className="filter-input"
-              style={{ width: '100%' }}
-            />
-          </div>
+        <button
+          onClick={() => setActiveTab('news')}
+          style={{
+            padding: '10px 18px',
+            background: activeTab === 'news' ? '#1e293b' : 'transparent',
+            color: activeTab === 'news' ? '#38bdf8' : '#94a3b8',
+            border: 'none',
+            borderBottom: activeTab === 'news' ? '2px solid #38bdf8' : '2px solid transparent',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: 14,
+            borderRadius: '6px 6px 0 0'
+          }}
+        >
+          📰 News & Schemes
+        </button>
+      </div>
 
-          <div>
-            <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Country:</label>
-            <input
-              type="text"
-              value={farmerCountry}
-              onChange={(e) => setFarmerCountry(e.target.value)}
-              className="filter-input"
-              style={{ width: '100%' }}
-            />
-          </div>
+      {/* TAB 1: DISEASE & SCAN TELEMETRY */}
+      {activeTab === 'telemetry' && (
+        <>
+          {/* Leaf Scan & Farmer Intake */}
+          <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: 20, marginBottom: 24 }}>
+            <h3 style={{ marginBottom: 14, fontSize: 18, color: '#f8fafc' }}>Leaf Scan & Field Intake</h3>
+            
+            {/* Farmer & Location Details Form */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+              gap: 12,
+              marginBottom: 16,
+              background: '#0f172a',
+              padding: 14,
+              borderRadius: 6,
+              border: '1px solid #334155'
+            }}>
+              <div>
+                <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Farmer Name:</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Ramesh Hegde"
+                  value={farmerName}
+                  onChange={(e) => setFarmerName(e.target.value)}
+                  className="filter-input"
+                  style={{ width: '100%' }}
+                />
+              </div>
 
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <label style={{ fontSize: 12, color: '#94a3b8' }}>Lat / Lon:</label>
-              <button
-                type="button"
-                onClick={handleFetchCurrentLocation}
-                style={{ background: 'transparent', border: 'none', color: '#38bdf8', fontSize: 11, cursor: 'pointer', padding: 0 }}
-              >
-                📍 GPS Detect
-              </button>
+              <div>
+                <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Phone Number:</label>
+                <input
+                  type="tel"
+                  placeholder="+91 98450 12345"
+                  value={farmerPhone}
+                  onChange={(e) => setFarmerPhone(e.target.value)}
+                  className="filter-input"
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>District:</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Uttara Kannada"
+                  value={farmerDistrict}
+                  onChange={(e) => setFarmerDistrict(e.target.value)}
+                  className="filter-input"
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>State:</label>
+                <input
+                  type="text"
+                  value={farmerState}
+                  onChange={(e) => setFarmerState(e.target.value)}
+                  className="filter-input"
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Country:</label>
+                <input
+                  type="text"
+                  value={farmerCountry}
+                  onChange={(e) => setFarmerCountry(e.target.value)}
+                  className="filter-input"
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <label style={{ fontSize: 12, color: '#94a3b8' }}>Lat / Lon:</label>
+                  <button
+                    type="button"
+                    onClick={handleFetchCurrentLocation}
+                    style={{ background: 'transparent', border: 'none', color: '#38bdf8', fontSize: 11, cursor: 'pointer', padding: 0 }}
+                  >
+                    📍 GPS Detect
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    type="text"
+                    placeholder="Lat"
+                    value={customLat}
+                    onChange={(e) => setCustomLat(e.target.value)}
+                    className="filter-input"
+                    style={{ width: '50%' }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Lon"
+                    value={customLon}
+                    onChange={(e) => setCustomLon(e.target.value)}
+                    className="filter-input"
+                    style={{ width: '50%' }}
+                  />
+                </div>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <input
-                type="text"
-                placeholder="Lat"
-                value={customLat}
-                onChange={(e) => setCustomLat(e.target.value)}
-                className="filter-input"
-                style={{ width: '50%' }}
-              />
-              <input
-                type="text"
-                placeholder="Lon"
-                value={customLon}
-                onChange={(e) => setCustomLon(e.target.value)}
-                className="filter-input"
-                style={{ width: '50%' }}
-              />
+
+            {/* Scan Intake Controls */}
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div>
+                <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Target Crop:</label>
+                <select className="filter-input" value={scanCrop} onChange={(e) => setScanCrop(e.target.value)}>
+                  <option value="Tomato">Tomato</option>
+                  <option value="Potato">Potato</option>
+                  <option value="Paddy">Paddy</option>
+                  <option value="Cotton">Cotton</option>
+                  <option value="Corn">Corn</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Leaf Photo / Camera:</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                  className="filter-input"
+                />
+              </div>
+
+              <div style={{ marginTop: 20, display: 'flex', gap: 8 }}>
+                <button
+                  className="export-btn"
+                  onClick={handleStartScan}
+                  disabled={!previewUrl || isScanning}
+                  style={{ opacity: (!previewUrl || isScanning) ? 0.6 : 1, cursor: previewUrl ? 'pointer' : 'not-allowed' }}
+                >
+                  {isScanning ? 'Processing Scan...' : 'Record Scan'}
+                </button>
+                {previewUrl && (
+                  <button
+                    className="filter-input"
+                    style={{ cursor: 'pointer', background: '#334155' }}
+                    onClick={() => { setPreviewUrl(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Scan Intake Controls */}
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-          <div>
-            <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Target Crop:</label>
-            <select className="filter-input" value={scanCrop} onChange={(e) => setScanCrop(e.target.value)}>
-              <option value="Tomato">Tomato</option>
-              <option value="Potato">Potato</option>
-              <option value="Paddy">Paddy</option>
-              <option value="Cotton">Cotton</option>
-              <option value="Corn">Corn</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Leaf Photo / Camera:</label>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              ref={fileInputRef}
-              onChange={handleImageUpload}
-              className="filter-input"
-            />
-          </div>
-
-          <div style={{ marginTop: 20, display: 'flex', gap: 8 }}>
-            <button
-              className="export-btn"
-              onClick={handleStartScan}
-              disabled={!previewUrl || isScanning}
-              style={{ opacity: (!previewUrl || isScanning) ? 0.6 : 1, cursor: previewUrl ? 'pointer' : 'not-allowed' }}
-            >
-              {isScanning ? 'Processing Scan...' : 'Record Scan'}
-            </button>
             {previewUrl && (
+              <div style={{ marginTop: 14 }}>
+                <span style={{ fontSize: 12, color: '#94a3b8' }}>Leaf Sample Preview:</span>
+                <div style={{ marginTop: 6 }}>
+                  <img src={previewUrl} alt="Scan preview" style={{ height: 110, borderRadius: 6, border: '1px solid #475569' }} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* DEDICATED SEPARATE BOX: SOIL & PRECAUTIONS ADVISORY */}
+          <div style={{
+            background: '#1e293b',
+            border: '1px solid #334155',
+            borderRadius: 8,
+            padding: 20,
+            marginBottom: 24,
+            textAlign: 'left'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  🌾 Agronomic Advisory: Soil & Precautions Guide
+                </h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#94a3b8' }}>
+                  Standard crop protection practices and soil condition recommendations.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ fontSize: 13, color: '#94a3b8' }}>Select Disease / Target:</label>
+                <select
+                  className="filter-input"
+                  value={advisoryDisease}
+                  onChange={(e) => setAdvisoryDisease(e.target.value)}
+                  style={{ minWidth: 200 }}
+                >
+                  {Object.keys(AGRONOMIC_GUIDE).map((disease) => (
+                    <option key={disease} value={disease}>{disease} ({AGRONOMIC_GUIDE[disease].crop})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* 2-Column Equal Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 16, alignItems: 'stretch' }}>
+              {/* Soil Information Box */}
+              <div style={{
+                background: '#0f172a',
+                border: '1px solid #334155',
+                borderRadius: 6,
+                padding: 18,
+                display: 'flex',
+                flexDirection: 'column',
+                textAlign: 'left'
+              }}>
+                <h4 style={{ margin: '0 0 14px 0', fontSize: 15, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  🌱 Soil Profile & Health Requirements
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13, color: '#cbd5e1' }}>
+                  {AGRONOMIC_GUIDE[advisoryDisease]?.soil.map((item, idx) => (
+                    <div key={idx} style={{ lineHeight: 1.5, textAlign: 'left' }}>
+                      <strong style={{ color: '#93c5fd' }}>• {item.label}: </strong>
+                      <span>{item.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Precautions Box */}
+              <div style={{
+                background: '#0f172a',
+                border: '1px solid #334155',
+                borderRadius: 6,
+                padding: 18,
+                display: 'flex',
+                flexDirection: 'column',
+                textAlign: 'left'
+              }}>
+                <h4 style={{ margin: '0 0 14px 0', fontSize: 15, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  ⚠️ Standard Precautionary & Management Protocols
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13, color: '#cbd5e1' }}>
+                  {AGRONOMIC_GUIDE[advisoryDisease]?.precautions.map((item, idx) => (
+                    <div key={idx} style={{ lineHeight: 1.5, textAlign: 'left' }}>
+                      <strong style={{ color: '#fde68a' }}>• {item.label}: </strong>
+                      <span>{item.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 14, fontSize: 11, color: '#64748b', fontStyle: 'italic', textAlign: 'left' }}>
+              *Synthesized from standard agricultural research management practices for prototype demonstration.
+            </div>
+          </div>
+
+          {/* DEDICATED CROP-SPECIFIC HISTORICAL CHARTS WITH DROPDOWN SELECTOR */}
+          <div style={{
+            background: '#1e293b',
+            border: '1px solid #334155',
+            borderRadius: 8,
+            padding: 20,
+            marginBottom: 24
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  📊 Institutional Baseline Comparison & Historical Incidence Trends
+                </h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#94a3b8' }}>
+                  Crop-specific seasonal telemetry benchmarked against ICAR-IIHR/IISR standard surveillance profiles.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ fontSize: 13, color: '#94a3b8', fontWeight: 500 }}>Select Crop Analytics:</label>
+                <select
+                  className="filter-input"
+                  value={selectedChartCrop}
+                  onChange={(e) => setSelectedChartCrop(e.target.value)}
+                  style={{ minWidth: 140, cursor: 'pointer', borderColor: '#38bdf8' }}
+                >
+                  <option value="Tomato">Tomato</option>
+                  <option value="Potato">Potato</option>
+                  <option value="Paddy">Paddy</option>
+                  <option value="Cotton">Cotton</option>
+                  <option value="Corn">Corn</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20 }}>
+              {/* Crop-Specific Longitudinal Trend Line Chart */}
+              <div style={{ background: '#0f172a', padding: 16, borderRadius: 6, border: '1px solid #334155' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#cbd5e1', marginBottom: 12 }}>
+                  {selectedChartCrop} Disease Incidence % (Field vs. Institutional Baseline)
+                </div>
+                <div style={{ width: '100%', height: 260 }}>
+                  <ResponsiveContainer>
+                    <LineChart data={CROP_HISTORICAL_TRENDS[selectedChartCrop] || []}>
+                      <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
+                      <XAxis dataKey="season" stroke="#94a3b8" fontSize={11} />
+                      <YAxis stroke="#94a3b8" fontSize={11} unit="%" domain={[0, 60]} />
+                      <Tooltip contentStyle={{ background: '#0f172a', borderColor: '#475569' }} />
+                      <Legend verticalAlign="top" height={36} />
+                      <Line type="monotone" dataKey="AgroLensObserved" name={`${selectedChartCrop} Field Scans`} stroke="#38bdf8" strokeWidth={2} dot={{ r: 4 }} />
+                      <Line type="monotone" dataKey="Baseline" name="ICAR Institutional Baseline" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Crop-Specific Diagnostic Standard Metric Comparison */}
+              <div style={{ background: '#0f172a', padding: 16, borderRadius: 6, border: '1px solid #334155' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#cbd5e1', marginBottom: 12 }}>
+                  {selectedChartCrop} Model Evaluation vs. Institutional Standard (%)
+                </div>
+                <div style={{ width: '100%', height: 260 }}>
+                  <ResponsiveContainer>
+                    <BarChart data={CROP_BENCHMARK_METRICS[selectedChartCrop] || []}>
+                      <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
+                      <XAxis dataKey="metric" stroke="#94a3b8" fontSize={12} />
+                      <YAxis stroke="#94a3b8" fontSize={12} domain={[60, 100]} unit="%" />
+                      <Tooltip contentStyle={{ background: '#0f172a', borderColor: '#475569' }} />
+                      <Legend verticalAlign="top" height={36} />
+                      <Bar dataKey="AgroLens" name={`AgroLens ${selectedChartCrop}`} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Benchmark" name="ICAR Target Standard" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 12, fontSize: 11, color: '#64748b', fontStyle: 'italic' }}>
+              *Synthesized research metrics aligned with published seasonal advisory bulletins. Educational prototype visualization.
+            </div>
+          </div>
+
+          {/* Metrics Row */}
+          <div className="metrics-grid">
+            <div className="metric-card">
+              <div className="metric-title">Total Scans</div>
+              <div className="metric-value">{metrics.total}</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-title">Unique Crops</div>
+              <div className="metric-value">{metrics.uniqueCrops}</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-title">Diseases / Pests</div>
+              <div className="metric-value">{metrics.uniqueDiseases}</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-title">Low Confidence (&lt;60%)</div>
+              <div className="metric-value" style={{ color: '#f59e0b' }}>{metrics.lowConf}</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-title">Farmer Confirmed</div>
+              <div className="metric-value" style={{ color: '#38bdf8' }}>{metrics.farmerConfirmed}</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-title">Expert Verified</div>
+              <div className="metric-value" style={{ color: '#10b981' }}>{metrics.expertVerified}</div>
+            </div>
+          </div>
+
+          {/* Analytics Charts */}
+          <div className="charts-grid">
+            <div className="chart-card">
+              <div className="chart-title">Most Frequent Diseases</div>
+              <div style={{ width: '100%', height: 260 }}>
+                <ResponsiveContainer>
+                  <BarChart data={diseaseChartData}>
+                    <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
+                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
+                    <YAxis stroke="#94a3b8" fontSize={12} allowDecimals={false} />
+                    <Tooltip contentStyle={{ background: '#0f172a', borderColor: '#475569' }} />
+                    <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="chart-card">
+              <div className="chart-title">Disease Distribution by Crop</div>
+              <div style={{ width: '100%', height: 260 }}>
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie data={cropChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                      {cropChartData.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ background: '#0f172a', borderColor: '#475569' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="filter-bar">
+            <select className="filter-input" value={filterCrop} onChange={e => setFilterCrop(e.target.value)}>
+              <option value="">All Crops</option>
+              {[...new Set(scans.map(s => s.crop))].map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+
+            <select className="filter-input" value={filterDisease} onChange={e => setFilterDisease(e.target.value)}>
+              <option value="">All Diseases</option>
+              {[...new Set(scans.map(s => s.predicted_disease))].map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+
+            <select className="filter-input" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+              <option value="">All Verification States</option>
+              <option value="pending">Pending</option>
+              <option value="expert_verified">Expert Verified</option>
+              <option value="rejected">Rejected</option>
+            </select>
+
+            <label style={{ fontSize: 13, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 6 }}>
+              Min Conf:
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={confidenceMin}
+                onChange={e => setConfidenceMin(parseFloat(e.target.value))}
+              />
+              {(confidenceMin * 100).toFixed(0)}%
+            </label>
+
+            {(filterCrop || filterDisease || filterStatus || confidenceMin > 0) && (
               <button
                 className="filter-input"
                 style={{ cursor: 'pointer', background: '#334155' }}
-                onClick={() => { setPreviewUrl(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                onClick={() => { setFilterCrop(''); setFilterDisease(''); setFilterStatus(''); setConfidenceMin(0); }}
               >
-                Clear
+                Clear Filters
               </button>
             )}
           </div>
-        </div>
 
-        {previewUrl && (
-          <div style={{ marginTop: 14 }}>
-            <span style={{ fontSize: 12, color: '#94a3b8' }}>Leaf Sample Preview:</span>
-            <div style={{ marginTop: 6 }}>
-              <img src={previewUrl} alt="Scan preview" style={{ height: 110, borderRadius: 6, border: '1px solid #475569' }} />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* DEDICATED SEPARATE BOX: SOIL & PRECAUTIONS ADVISORY */}
-      <div style={{
-        background: '#1e293b',
-        border: '1px solid #334155',
-        borderRadius: 8,
-        padding: 20,
-        marginBottom: 24,
-        textAlign: 'left'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: 18, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: 8 }}>
-              🌾 Agronomic Advisory: Soil & Precautions Guide
-            </h3>
-            <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#94a3b8' }}>
-              Standard crop protection practices and soil condition recommendations.
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <label style={{ fontSize: 13, color: '#94a3b8' }}>Select Disease / Target:</label>
-            <select
-              className="filter-input"
-              value={advisoryDisease}
-              onChange={(e) => setAdvisoryDisease(e.target.value)}
-              style={{ minWidth: 200 }}
-            >
-              {Object.keys(AGRONOMIC_GUIDE).map((disease) => (
-                <option key={disease} value={disease}>{disease} ({AGRONOMIC_GUIDE[disease].crop})</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* 2-Column Equal Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 16, alignItems: 'stretch' }}>
-          
-          {/* Soil Information Box */}
-          <div style={{
-            background: '#0f172a',
-            border: '1px solid #334155',
-            borderRadius: 6,
-            padding: 18,
-            display: 'flex',
-            flexDirection: 'column',
-            textAlign: 'left'
-          }}>
-            <h4 style={{ margin: '0 0 14px 0', fontSize: 15, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: 6 }}>
-              🌱 Soil Profile & Health Requirements
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13, color: '#cbd5e1' }}>
-              {AGRONOMIC_GUIDE[advisoryDisease]?.soil.map((item, idx) => (
-                <div key={idx} style={{ lineHeight: 1.5, textAlign: 'left' }}>
-                  <strong style={{ color: '#93c5fd' }}>• {item.label}: </strong>
-                  <span>{item.text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Precautions Box */}
-          <div style={{
-            background: '#0f172a',
-            border: '1px solid #334155',
-            borderRadius: 6,
-            padding: 18,
-            display: 'flex',
-            flexDirection: 'column',
-            textAlign: 'left'
-          }}>
-            <h4 style={{ margin: '0 0 14px 0', fontSize: 15, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 6 }}>
-              ⚠️ Standard Precautionary & Management Protocols
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13, color: '#cbd5e1' }}>
-              {AGRONOMIC_GUIDE[advisoryDisease]?.precautions.map((item, idx) => (
-                <div key={idx} style={{ lineHeight: 1.5, textAlign: 'left' }}>
-                  <strong style={{ color: '#fde68a' }}>• {item.label}: </strong>
-                  <span>{item.text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-        </div>
-
-        <div style={{ marginTop: 14, fontSize: 11, color: '#64748b', fontStyle: 'italic', textAlign: 'left' }}>
-          *Synthesized from standard agricultural research management practices for prototype demonstration.
-        </div>
-      </div>
-
-      {/* DEDICATED CROP-SPECIFIC HISTORICAL CHARTS WITH DROPDOWN SELECTOR */}
-      <div style={{
-        background: '#1e293b',
-        border: '1px solid #334155',
-        borderRadius: 8,
-        padding: 20,
-        marginBottom: 24
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: 18, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: 8 }}>
-              📊 Institutional Baseline Comparison & Historical Incidence Trends
-            </h3>
-            <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#94a3b8' }}>
-              Crop-specific seasonal telemetry benchmarked against ICAR-IIHR/IISR standard surveillance profiles.
-            </p>
-          </div>
-
-          {/* CROP SELECTOR DROPDOWN */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <label style={{ fontSize: 13, color: '#94a3b8', fontWeight: 500 }}>Select Crop Analytics:</label>
-            <select
-              className="filter-input"
-              value={selectedChartCrop}
-              onChange={(e) => setSelectedChartCrop(e.target.value)}
-              style={{ minWidth: 140, cursor: 'pointer', borderColor: '#38bdf8' }}
-            >
-              <option value="Tomato">Tomato</option>
-              <option value="Potato">Potato</option>
-              <option value="Paddy">Paddy</option>
-              <option value="Cotton">Cotton</option>
-              <option value="Corn">Corn</option>
-            </select>
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20 }}>
-          {/* Crop-Specific Longitudinal Trend Line Chart */}
-          <div style={{ background: '#0f172a', padding: 16, borderRadius: 6, border: '1px solid #334155' }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#cbd5e1', marginBottom: 12 }}>
-              {selectedChartCrop} Disease Incidence % (Field vs. Institutional Baseline)
-            </div>
-            <div style={{ width: '100%', height: 260 }}>
-              <ResponsiveContainer>
-                <LineChart data={CROP_HISTORICAL_TRENDS[selectedChartCrop] || []}>
-                  <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
-                  <XAxis dataKey="season" stroke="#94a3b8" fontSize={11} />
-                  <YAxis stroke="#94a3b8" fontSize={11} unit="%" domain={[0, 60]} />
-                  <Tooltip contentStyle={{ background: '#0f172a', borderColor: '#475569' }} />
-                  <Legend verticalAlign="top" height={36} />
-                  <Line type="monotone" dataKey="AgroLensObserved" name={`${selectedChartCrop} Field Scans`} stroke="#38bdf8" strokeWidth={2} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="Baseline" name="ICAR Institutional Baseline" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Crop-Specific Diagnostic Standard Metric Comparison */}
-          <div style={{ background: '#0f172a', padding: 16, borderRadius: 6, border: '1px solid #334155' }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#cbd5e1', marginBottom: 12 }}>
-              {selectedChartCrop} Model Evaluation vs. Institutional Standard (%)
-            </div>
-            <div style={{ width: '100%', height: 260 }}>
-              <ResponsiveContainer>
-                <BarChart data={CROP_BENCHMARK_METRICS[selectedChartCrop] || []}>
-                  <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
-                  <XAxis dataKey="metric" stroke="#94a3b8" fontSize={12} />
-                  <YAxis stroke="#94a3b8" fontSize={12} domain={[60, 100]} unit="%" />
-                  <Tooltip contentStyle={{ background: '#0f172a', borderColor: '#475569' }} />
-                  <Legend verticalAlign="top" height={36} />
-                  <Bar dataKey="AgroLens" name={`AgroLens ${selectedChartCrop}`} fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Benchmark" name="ICAR Target Standard" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ marginTop: 12, fontSize: 11, color: '#64748b', fontStyle: 'italic' }}>
-          *Synthesized research metrics aligned with published seasonal advisory bulletins. Educational prototype visualization.
-        </div>
-      </div>
-
-      {/* Metrics Row */}
-      <div className="metrics-grid">
-        <div className="metric-card">
-          <div className="metric-title">Total Scans</div>
-          <div className="metric-value">{metrics.total}</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-title">Unique Crops</div>
-          <div className="metric-value">{metrics.uniqueCrops}</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-title">Diseases / Pests</div>
-          <div className="metric-value">{metrics.uniqueDiseases}</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-title">Low Confidence (&lt;60%)</div>
-          <div className="metric-value" style={{ color: '#f59e0b' }}>{metrics.lowConf}</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-title">Farmer Confirmed</div>
-          <div className="metric-value" style={{ color: '#38bdf8' }}>{metrics.farmerConfirmed}</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-title">Expert Verified</div>
-          <div className="metric-value" style={{ color: '#10b981' }}>{metrics.expertVerified}</div>
-        </div>
-      </div>
-
-      {/* Analytics Charts */}
-      <div className="charts-grid">
-        <div className="chart-card">
-          <div className="chart-title">Most Frequent Diseases</div>
-          <div style={{ width: '100%', height: 260 }}>
-            <ResponsiveContainer>
-              <BarChart data={diseaseChartData}>
-                <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
-                <YAxis stroke="#94a3b8" fontSize={12} allowDecimals={false} />
-                <Tooltip contentStyle={{ background: '#0f172a', borderColor: '#475569' }} />
-                <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="chart-card">
-          <div className="chart-title">Disease Distribution by Crop</div>
-          <div style={{ width: '100%', height: 260 }}>
-            <ResponsiveContainer>
-              <PieChart>
-                <Pie data={cropChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                  {cropChartData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ background: '#0f172a', borderColor: '#475569' }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* Filter Bar */}
-      <div className="filter-bar">
-        <select className="filter-input" value={filterCrop} onChange={e => setFilterCrop(e.target.value)}>
-          <option value="">All Crops</option>
-          {[...new Set(scans.map(s => s.crop))].map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-
-        <select className="filter-input" value={filterDisease} onChange={e => setFilterDisease(e.target.value)}>
-          <option value="">All Diseases</option>
-          {[...new Set(scans.map(s => s.predicted_disease))].map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
-
-        <select className="filter-input" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-          <option value="">All Verification States</option>
-          <option value="pending">Pending</option>
-          <option value="expert_verified">Expert Verified</option>
-          <option value="rejected">Rejected</option>
-        </select>
-
-        <label style={{ fontSize: 13, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 6 }}>
-          Min Conf:
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={confidenceMin}
-            onChange={e => setConfidenceMin(parseFloat(e.target.value))}
-          />
-          {(confidenceMin * 100).toFixed(0)}%
-        </label>
-
-        {(filterCrop || filterDisease || filterStatus || confidenceMin > 0) && (
-          <button
-            className="filter-input"
-            style={{ cursor: 'pointer', background: '#334155' }}
-            onClick={() => { setFilterCrop(''); setFilterDisease(''); setFilterStatus(''); setConfidenceMin(0); }}
-          >
-            Clear Filters
-          </button>
-        )}
-      </div>
-
-      {/* Scans Table */}
-      <div className="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Scan ID</th>
-              <th>Farmer Details</th>
-              <th>Region</th>
-              <th>GPS Coordinates</th>
-              <th>Crop</th>
-              <th>Predicted Disease</th>
-              <th>Confidence</th>
-              <th>Feedback</th>
-              <th>Verification</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredScans.length === 0 ? (
-              <tr><td colSpan="10" style={{ textAlign: 'center', padding: 24, color: '#94a3b8' }}>No scans match current filters.</td></tr>
-            ) : (
-              filteredScans.map(scan => (
-                <tr key={scan.scan_id}>
-                  <td><code>{scan.scan_id}</code></td>
-                  <td>
-                    <div style={{ fontWeight: 600, color: '#f8fafc' }}>{scan.farmer?.name || "Anonymous"}</div>
-                    <div style={{ fontSize: 11, color: '#94a3b8' }}>{scan.farmer?.phone || "No phone"}</div>
-                  </td>
-                  <td>
-                    <div style={{ fontSize: 12 }}>{scan.farmer ? `${scan.farmer.district}, ${scan.farmer.state}` : 'Unspecified'}</div>
-                    <div style={{ fontSize: 11, color: '#64748b' }}>{scan.farmer?.country || 'India'}</div>
-                  </td>
-                  <td>
-                    {scan.location ? (
-                      <a
-                        href={`https://www.google.com/maps?q=${scan.location.lat},${scan.location.lon}`}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        style={{
-                          color: '#38bdf8',
-                          textDecoration: 'none',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          fontSize: 12,
-                          background: '#0f172a',
-                          padding: '3px 8px',
-                          borderRadius: 4,
-                          border: '1px solid #334155'
-                        }}
-                        title="Click to view field location on Google Maps"
-                      >
-                        📍 {scan.location.lat}, {scan.location.lon}
-                      </a>
-                    ) : (
-                      <span style={{ fontSize: 12, color: '#64748b' }}>Not provided</span>
-                    )}
-                  </td>
-                  <td>{scan.crop}</td>
-                  <td>{scan.predicted_disease}</td>
-                  <td>
-                    <span className={`badge ${scan.confidence < 0.6 ? 'badge-warning' : 'badge-success'}`}>
-                      {(scan.confidence * 100).toFixed(1)}%
-                    </span>
-                  </td>
-                  <td>
-                    <span className="badge badge-gray">{scan.farmer_feedback}</span>
-                  </td>
-                  <td>
-                    <span className={`badge ${
-                      scan.verification_status === 'expert_verified' ? 'badge-success' :
-                      scan.verification_status === 'rejected' ? 'badge-warning' : 'badge-info'
-                    }`}>
-                      {scan.verification_status}
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      className="filter-input"
-                      style={{ cursor: 'pointer', padding: '4px 8px' }}
-                      onClick={() => setSelectedScan(scan)}
-                    >
-                      View Details
-                    </button>
-                  </td>
+          {/* Scans Table */}
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Scan ID</th>
+                  <th>Farmer Details</th>
+                  <th>Region</th>
+                  <th>GPS Coordinates</th>
+                  <th>Crop</th>
+                  <th>Predicted Disease</th>
+                  <th>Confidence</th>
+                  <th>Feedback</th>
+                  <th>Verification</th>
+                  <th>Action</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {filteredScans.length === 0 ? (
+                  <tr><td colSpan="10" style={{ textAlign: 'center', padding: 24, color: '#94a3b8' }}>No scans match current filters.</td></tr>
+                ) : (
+                  filteredScans.map(scan => (
+                    <tr key={scan.scan_id}>
+                      <td><code>{scan.scan_id}</code></td>
+                      <td>
+                        <div style={{ fontWeight: 600, color: '#f8fafc' }}>{scan.farmer?.name || "Anonymous"}</div>
+                        <div style={{ fontSize: 11, color: '#94a3b8' }}>{scan.farmer?.phone || "No phone"}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontSize: 12 }}>{scan.farmer ? `${scan.farmer.district}, ${scan.farmer.state}` : 'Unspecified'}</div>
+                        <div style={{ fontSize: 11, color: '#64748b' }}>{scan.farmer?.country || 'India'}</div>
+                      </td>
+                      <td>
+                        {scan.location ? (
+                          <a
+                            href={`https://www.google.com/maps?q=${scan.location.lat},${scan.location.lon}`}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                            style={{
+                              color: '#38bdf8',
+                              textDecoration: 'none',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              fontSize: 12,
+                              background: '#0f172a',
+                              padding: '3px 8px',
+                              borderRadius: 4,
+                              border: '1px solid #334155'
+                            }}
+                            title="Click to view field location on Google Maps"
+                          >
+                            📍 {scan.location.lat}, {scan.location.lon}
+                          </a>
+                        ) : (
+                          <span style={{ fontSize: 12, color: '#64748b' }}>Not provided</span>
+                        )}
+                      </td>
+                      <td>{scan.crop}</td>
+                      <td>{scan.predicted_disease}</td>
+                      <td>
+                        <span className={`badge ${scan.confidence < 0.6 ? 'badge-warning' : 'badge-success'}`}>
+                          {(scan.confidence * 100).toFixed(1)}%
+                        </span>
+                      </td>
+                      <td>
+                        <span className="badge badge-gray">{scan.farmer_feedback}</span>
+                      </td>
+                      <td>
+                        <span className={`badge ${
+                          scan.verification_status === 'expert_verified' ? 'badge-success' :
+                          scan.verification_status === 'rejected' ? 'badge-warning' : 'badge-info'
+                        }`}>
+                          {scan.verification_status}
+                        </span>
+                      </td>
+                      <td>
+                        <button
+                          className="filter-input"
+                          style={{ cursor: 'pointer', padding: '4px 8px' }}
+                          onClick={() => setSelectedScan(scan)}
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {/* TAB 2: MANDI MARKET & PRICE ANALYTICS */}
+      {activeTab === 'mandi' && (
+        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: 18, color: '#f8fafc' }}>📈 Commodity & Mandi Price Analytics</h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#94a3b8' }}>
+                Latest APMC arrivals, modal price benchmarks, and 5-day ML trend projections.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <label style={{ fontSize: 13, color: '#94a3b8' }}>Commodity:</label>
+              <select
+                className="filter-input"
+                value={selectedMandiCrop}
+                onChange={(e) => setSelectedMandiCrop(e.target.value)}
+                style={{ minWidth: 140, cursor: 'pointer', borderColor: '#38bdf8' }}
+              >
+                <option value="Tomato">Tomato</option>
+                <option value="Potato">Potato</option>
+                <option value="Paddy">Paddy</option>
+                <option value="Cotton">Cotton</option>
+                <option value="Corn">Corn</option>
+              </select>
+            </div>
+          </div>
+
+          {currentMandiData && (
+            <>
+              {/* Price Metric Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 20 }}>
+                <div style={{ background: '#0f172a', padding: 14, borderRadius: 6, border: '1px solid #334155' }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8' }}>Selected Center & Location</div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: '#f8fafc', marginTop: 4 }}>
+                    {currentMandiData.market}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                    Source: {currentMandiData.source}
+                  </div>
+                </div>
+
+                <div style={{ background: '#0f172a', padding: 14, borderRadius: 6, border: '1px solid #334155' }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8' }}>Today's Modal Price</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: '#38bdf8', marginTop: 4 }}>
+                    ₹{currentMandiData.modalPrice}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                    Unit: {currentMandiData.unit}
+                  </div>
+                </div>
+
+                <div style={{ background: '#0f172a', padding: 14, borderRadius: 6, border: '1px solid #334155' }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8' }}>Price Range (Min - Max)</div>
+                  <div style={{ fontSize: 20, fontWeight: 600, color: '#10b981', marginTop: 4 }}>
+                    ₹{currentMandiData.minPrice} – ₹{currentMandiData.maxPrice}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                    Updated: {new Date(currentMandiData.lastUpdated).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+
+              {/* Price Trend Chart (Actual vs ML Forecast) */}
+              <div style={{ background: '#0f172a', padding: 16, borderRadius: 6, border: '1px solid #334155', marginBottom: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: '#f8fafc' }}>
+                    {selectedMandiMarket.name} — Price Trajectory & 5-Day ML Projection ({currentMandiData.unit})
+                  </span>
+                  <div style={{ display: 'flex', gap: 14, fontSize: 12 }}>
+                    <span style={{ color: '#38bdf8' }}>● Solid: Recorded APMC Prices</span>
+                    <span style={{ color: '#f59e0b' }}>--- Dashed: ML Predictive Forecast</span>
+                  </div>
+                </div>
+
+                <div style={{ width: '100%', height: 280 }}>
+                  <ResponsiveContainer>
+                    <LineChart data={currentMandiData.historical}>
+                      <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
+                      <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} />
+                      <YAxis stroke="#94a3b8" fontSize={11} domain={['dataMin - 150', 'dataMax + 150']} />
+                      <Tooltip contentStyle={{ background: '#0f172a', borderColor: '#475569' }} />
+                      <Legend verticalAlign="top" height={36} />
+                      <Line type="monotone" dataKey="modal" name="Modal Price (₹)" stroke="#38bdf8" strokeWidth={2} dot={{ r: 4 }} />
+                      <Line type="monotone" dataKey="max" name="Max Price (₹)" stroke="#10b981" strokeWidth={1.5} strokeDasharray="3 3" />
+                      <Line type="monotone" dataKey="min" name="Min Price (₹)" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="3 3" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Active India APMC Monitoring Centers */}
+              <div style={{ marginTop: 24 }}>
+                <h3 style={{
+                  textAlign: 'center',
+                  fontSize: 18,
+                  fontWeight: 700,
+                  color: '#ffffff',
+                  marginBottom: 6
+                }}>
+                  Active India APMC Monitoring Centers
+                </h3>
+                <p style={{ textAlign: 'center', fontSize: 12, color: '#94a3b8', margin: '0 0 16px 0' }}>
+                  (Click any center to view its specific price trajectory and 5-day ML forecast above)
+                </p>
+
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  gap: 14
+                }}>
+                  {MANDI_MARKETS.map(market => {
+                    const isSelected = selectedMandiMarket.id === market.id;
+                    return (
+                      <div
+                        key={market.id}
+                        onClick={() => setSelectedMandiMarket(market)}
+                        style={{
+                          background: isSelected ? '#1e3a5f' : '#152238',
+                          padding: '18px 16px',
+                          borderRadius: 8,
+                          border: isSelected ? '2px solid #38bdf8' : '1px solid #1e3a5f',
+                          textAlign: 'center',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          transform: isSelected ? 'translateY(-2px)' : 'none',
+                          boxShadow: isSelected ? '0 4px 12px rgba(56, 189, 248, 0.2)' : 'none'
+                        }}
+                      >
+                        <div style={{
+                          fontWeight: 700,
+                          color: isSelected ? '#ffffff' : '#38bdf8',
+                          fontSize: 16,
+                          marginBottom: 6
+                        }}>
+                          {market.name} {isSelected && '✓'}
+                        </div>
+                        <div style={{
+                          color: isSelected ? '#93c5fd' : '#94a3b8',
+                          fontSize: 13
+                        }}>
+                          {market.district}, {market.state}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: AGROMETEOROLOGY & REGIONAL WEATHER (ALL STATES & ALL DISTRICTS) */}
+      {activeTab === 'weather' && (
+        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: 18, color: '#f8fafc' }}>🌦️ Agrometeorological & Micro-Climate Intelligence</h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#94a3b8' }}>
+                District-level climate surveillance linked directly to fungal and bacterial pathogen risk indices across India.
+              </p>
+            </div>
+
+            {/* Cascading State & District Selectors */}
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <label style={{ fontSize: 13, color: '#94a3b8' }}>Select State:</label>
+                <select
+                  className="filter-input"
+                  value={selectedState}
+                  onChange={(e) => handleStateChange(e.target.value)}
+                  style={{ minWidth: 160, cursor: 'pointer', borderColor: '#38bdf8' }}
+                >
+                  {Object.keys(INDIA_ALL_STATES_DISTRICTS).map(st => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <label style={{ fontSize: 13, color: '#94a3b8' }}>Select District:</label>
+                <select
+                  className="filter-input"
+                  value={selectedDistrict}
+                  onChange={(e) => setSelectedDistrict(e.target.value)}
+                  style={{ minWidth: 170, cursor: 'pointer', borderColor: '#38bdf8' }}
+                >
+                  {(INDIA_ALL_STATES_DISTRICTS[selectedState] || []).map(dist => (
+                    <option key={dist} value={dist}>{dist}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {currentWeather && (
+            <>
+              {/* Weather Telemetry Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 20 }}>
+                <div style={{ background: '#0f172a', padding: 14, borderRadius: 6, border: '1px solid #334155' }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8' }}>Temperature</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: '#f8fafc', marginTop: 4 }}>
+                    {currentWeather.temp}°C
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Wind: {currentWeather.windSpeed}</div>
+                </div>
+
+                <div style={{ background: '#0f172a', padding: 14, borderRadius: 6, border: '1px solid #334155' }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8' }}>Relative Humidity</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: '#38bdf8', marginTop: 4 }}>
+                    {currentWeather.humidity}%
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                    Canopy wetness index: {currentWeather.humidity > 70 ? 'Elevated' : 'Normal'}
+                  </div>
+                </div>
+
+                <div style={{ background: '#0f172a', padding: 14, borderRadius: 6, border: '1px solid #334155' }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8' }}>Precipitation Outlook</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#cbd5e1', marginTop: 6, lineHeight: 1.4 }}>
+                    {currentWeather.rainfallForecast}
+                  </div>
+                </div>
+
+                <div style={{ background: '#0f172a', padding: 14, borderRadius: 6, border: '1px solid #334155' }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8' }}>Active Micro-Advisories</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: '#f59e0b', marginTop: 4 }}>
+                    {currentWeather.advisoriesCount}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Current week bulletins</div>
+                </div>
+              </div>
+
+              {/* Crop Weather Risk Assessment Card */}
+              <div style={{
+                background: '#0f172a',
+                border: '1px solid #334155',
+                borderRadius: 6,
+                padding: 16
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>
+                    Agrometeorological Risk Summary for {selectedDistrict}, {selectedState}
+                  </span>
+                  <span className={`badge ${
+                    currentWeather.riskSummary.level === 'High' ? 'badge-warning' :
+                    currentWeather.riskSummary.level === 'Medium' ? 'badge-info' : 'badge-success'
+                  }`}>
+                    {currentWeather.riskSummary.level} Risk
+                  </span>
+                </div>
+
+                <p style={{ margin: '0 0 10px 0', fontSize: 13, color: '#cbd5e1', lineHeight: 1.6 }}>
+                  {currentWeather.riskSummary.reason}
+                </p>
+
+                <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                  <strong>Soil Moisture Status: </strong>
+                  <span>{currentWeather.soilMoistureStatus}</span>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* TAB 4: AGRI NEWS & GOVERNMENT SCHEMES */}
+      {activeTab === 'news' && (
+        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: 20 }}>
+          <div style={{ marginBottom: 16 }}>
+            <h3 style={{ margin: 0, fontSize: 18, color: '#f8fafc' }}>📰 Agricultural News & Verified Government Schemes</h3>
+            <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#94a3b8' }}>
+              Direct government scheme announcements, credit updates, and official institutional portals.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {AGRI_NEWS_SCHEMES.map(item => (
+              <div
+                key={item.id}
+                style={{
+                  background: '#0f172a',
+                  border: '1px solid #334155',
+                  borderRadius: 6,
+                  padding: 16,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  flexWrap: 'wrap',
+                  gap: 12
+                }}
+              >
+                <div style={{ flex: '1 1 500px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span className={`badge ${item.type === 'Scheme' ? 'badge-success' : item.type === 'Advisory' ? 'badge-warning' : 'badge-info'}`}>
+                      {item.type}
+                    </span>
+                    <span style={{ fontSize: 12, color: '#94a3b8' }}>{item.date}</span>
+                    <span style={{ fontSize: 12, color: '#64748b' }}>• {item.source}</span>
+                  </div>
+
+                  <h4 style={{ margin: '0 0 6px 0', fontSize: 15, color: '#f8fafc' }}>{item.title}</h4>
+                  <p style={{ margin: 0, fontSize: 13, color: '#cbd5e1', lineHeight: 1.5 }}>{item.summary}</p>
+                </div>
+
+                <div>
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="export-btn"
+                    style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    Official Portal ↗
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 16, fontSize: 11, color: '#64748b', fontStyle: 'italic' }}>
+            *Links redirect to external official portals. Data ingested via institutional feeds.
+          </div>
+        </div>
+      )}
 
       {/* Record Detail Modal */}
       {selectedScan && (
