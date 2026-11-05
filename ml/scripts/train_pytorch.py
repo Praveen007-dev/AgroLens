@@ -91,6 +91,7 @@ def main() -> None:
         action="store_true",
         help="use 160x160 input and low-resolution degradation augmentation",
     )
+    parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     if args.epochs < 1 or args.batch_size < 1 or args.patience < 1:
@@ -140,11 +141,11 @@ def main() -> None:
     remove_missing_samples(validation_base)
     train_loader = DataLoader(
         Subset(base, train_indices), batch_size=args.batch_size, shuffle=True,
-        num_workers=2, pin_memory=True,
+        num_workers=args.num_workers, pin_memory=True,
     )
     validation_loader = DataLoader(
         Subset(validation_base, validation_indices), batch_size=args.batch_size,
-        shuffle=False, num_workers=2, pin_memory=True,
+        shuffle=False, num_workers=args.num_workers, pin_memory=True,
     )
     if args.architecture == "mobilenet_v3_large":
         weights = models.MobileNet_V3_Large_Weights.DEFAULT
